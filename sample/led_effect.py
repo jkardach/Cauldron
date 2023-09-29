@@ -1,5 +1,5 @@
 import led.led_effect as led
-import led.led_strip as strip
+import led.led_strip as led_strip
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,8 +15,8 @@ class TestEffect():
         plt.scatter(TestEffect.x, TestEffect.y, c = pixels / 255.0, s=50)
 
     @staticmethod
-    def test_effect(strip: strip.LedStrip, effect: led.LedEffect):
-        if isinstance(strip, strip.MockStrip):
+    def test_effect(strip: led_strip.LedStrip, effect: led.LedEffect):
+        if isinstance(strip, led_strip.MockStrip):
             strip.set_show_callback(TestEffect.callback)
         plt.ion()
         for i in range(100):
@@ -32,7 +32,7 @@ def test_sine_wave():
     color1 = [229, 245, 5]
     
     sine_wave = led.SineWaveEffect(color0, color1, oscillate = True, b = 5, oscillation_speed_ms = 50) 
-    mock_strip = strip.MockStrip(NUM_PIXELS)
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
 
     TestEffect.test_effect(mock_strip, sine_wave)
 
