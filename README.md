@@ -16,4 +16,7 @@ pip install -r requirements.txt
 
 # Install all local packages
 pip install -e .
+
+# Run sample scripts
+python sample/led_effect.py
 ```
