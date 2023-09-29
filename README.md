@@ -10,4 +10,7 @@ source env/bin/activate
 
 # Install all project dependencies
 pip install -r requirements.txt
+
+# Install all local packages
+pip install -e .
 ```
