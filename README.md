@@ -5,6 +5,9 @@ Within the project root directory
 # Install virtualenv
 pip install virtualenv
 
+# Create virtual environment
+virtualenv env
+
 # Activate the project environment
 source env/bin/activate
 
