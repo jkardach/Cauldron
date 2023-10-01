@@ -1,10 +1,15 @@
 import led.led_effect as led
 import led.led_strip as led_strip
+from led.neopixel_strip import NeoPixelStrip
 import matplotlib.pyplot as plt
+import neopixel
+import board
 import numpy as np
 
 
 NUM_PIXELS = 50
+PIXEL_ORDER = neopixel.RGB
+PIXEL_PIN = board.D18
 
 
 class TestEffect:
@@ -26,35 +31,6 @@ class TestEffect:
 
         plt.show()
 
-
-def test_mock_sine_wave():
-    color0 = [3, 252, 11]
-    color1 = [229, 245, 5]
-
-    sine_wave = led.SineWaveEffect(
-        color0, color1, oscillate=True, b=5, oscillation_speed_ms=150
-    )
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
-
-    TestEffect.test_effect(mock_strip, sine_wave)
-
-
-def test_bubble_effect():
-    base_color = [0, 0, 0]
-    bubble_color = [50, 255, 50]
-
-    sine_wave = led.BubbleEffect(
-        base_color,
-        bubble_color,
-        bubble_index=int(NUM_PIXELS / 3),
-        num_pixels=NUM_PIXELS,
-        bubble_pop_speed_ms=250,
-    )
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
-
-    TestEffect.test_effect(mock_strip, sine_wave)
-
-
 def test_rpi_neopixel_sine_wave():
     color0 = [3, 252, 11]
     color1 = [229, 245, 5]
@@ -75,6 +51,4 @@ def test_rpi_neopixel_sine_wave():
     TestEffect.test_effect(strip, sine_wave)
 
 
-# test_bubble_effect()
-test_mock_sine_wave()
-# test_rpi_neopixel_sine_wave()
+test_rpi_neopixel_sine_wave()
