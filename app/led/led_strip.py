@@ -1,8 +1,8 @@
 import abc
-import matplotlib.pyplot as plt
 from neopixel import NeoPixel
 import numpy as np
 from typing import Callable
+
 
 _RGB_COLOR_SIZE = 3
 
@@ -34,7 +34,9 @@ class LedStrip(abc.ABC):
 
 
 class MockStrip(LedStrip):
-    def __init__(self, num_pixels: int, show_callback: Callable[[np.array], None] = None):
+    def __init__(
+        self, num_pixels: int, show_callback: Callable[[np.array], None] = None
+    ):
         self._num_pixels = num_pixels
         self._pixels = np.array([[0, 0, 0]] * num_pixels)
         self._show_callback = show_callback
@@ -47,13 +49,15 @@ class MockStrip(LedStrip):
         self._pixels = [color] * self._num_pixels
 
     def fill_copy(self, pixels: np.array) -> int:
-        assert pixels.shape == self._pixels.shape, f"{colors.shape} != {self._pixels.shape}"
+        assert (
+            pixels.shape == self._pixels.shape
+        ), f"{pixels.shape} != {self._pixels.shape}"
         self._pixels = pixels.copy()
-    
+
     def set_pixel_color(self, index: int, color: list) -> None:
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels[index] = color
-    
+
     def set_brightness(self, brightness: int) -> None:
         return None
 
@@ -75,7 +79,7 @@ class NeoPixelStrip(LedStrip):
 
     def fill_copy(self, pixels: np.array) -> int:
         assert len(pixels) == len(self.neopixel)
-        self.neopixel[:] = np.floor(pixels).tolist()
+        self.neopixel[:] = pixels.astype(int).tolist()
 
     def set_pixel_color(self, index: int, color: list) -> None:
         assert len(color) == _RGB_COLOR_SIZE

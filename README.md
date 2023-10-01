@@ -1,9 +1,10 @@
 ### Setup Python Environment
 
-Within the project root directory
+Within the project root directory. To run on the raspberry pi, python commands
+must be run with `sudo python3`.
 ```
 # Install virtualenv
-pip install virtualenv
+python3 -m pip install virtualenv
 
 # Create virtual environment
 virtualenv env
@@ -12,11 +13,13 @@ virtualenv env
 source env/bin/activate
 
 # Install all project dependencies
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 
 # Install all local packages
-pip install -e .
+# This command must be run every time a change is made to the led directory when
+# running python as sudo.
+python3 -m pip install -e .
 
 # Run sample scripts
-python sample/led_effect.py
+python3 sample/led_effect.py
 ```
