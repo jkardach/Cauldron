@@ -2,29 +2,7 @@ import led.led_effect as led
 import led.led_strip as led_strip
 import matplotlib.pyplot as plt
 import numpy as np
-
-
-NUM_PIXELS = 50
-
-
-class TestEffect:
-    x = np.arange(0, NUM_PIXELS, 1)
-    y = [3] * NUM_PIXELS
-
-    @staticmethod
-    def callback(pixels: np.array):
-        plt.scatter(TestEffect.x, TestEffect.y, c=pixels / 255.0, s=50)
-
-    @staticmethod
-    def test_effect(strip: led_strip.LedStrip, effect: led.LedEffect):
-        if isinstance(strip, led_strip.MockStrip):
-            strip.set_show_callback(TestEffect.callback)
-        plt.ion()
-        for i in range(1000):
-            effect.apply_effect(strip)
-            plt.pause(effect.frame_speed_ms / 1000)
-
-        plt.show()
+from test_tools import TestEffect, NUM_PIXELS
 
 
 def test_mock_sine_wave():
@@ -32,49 +10,10 @@ def test_mock_sine_wave():
     color1 = [229, 245, 5]
 
     sine_wave = led.SineWaveEffect(
-        color0, color1, oscillate=True, b=5, oscillation_speed_ms=150
+        color0, color1, oscillate=True, b=5, oscillation_speed_ms=1000
     )
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
-
     TestEffect.test_effect(mock_strip, sine_wave)
 
 
-def test_bubble_effect():
-    base_color = [0, 0, 0]
-    bubble_color = [50, 255, 50]
-
-    sine_wave = led.BubbleEffect(
-        base_color,
-        bubble_color,
-        bubble_index=int(NUM_PIXELS / 3),
-        num_pixels=NUM_PIXELS,
-        bubble_pop_speed_ms=250,
-    )
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
-
-    TestEffect.test_effect(mock_strip, sine_wave)
-
-
-def test_rpi_neopixel_sine_wave():
-    color0 = [3, 252, 11]
-    color1 = [229, 245, 5]
-
-    sine_wave = led.SineWaveEffect(
-        color0, color1, oscillate=True, b=5, oscillation_speed_ms=250
-    )
-    sine_wave.frame_speed_ms = 50
-    device = neopixel.NeoPixel(
-        PIXEL_PIN,
-        NUM_PIXELS,
-        auto_write=True,
-        pixel_order=PIXEL_ORDER,
-        brightness=0.5,
-    )
-    strip = led_strip.NeoPixelStrip(device)
-
-    TestEffect.test_effect(strip, sine_wave)
-
-
-# test_bubble_effect()
 test_mock_sine_wave()
-# test_rpi_neopixel_sine_wave()

@@ -8,7 +8,7 @@ TWO_PI = np.pi * 2
 
 class LedEffect(abc.ABC):
     def __init__(self):
-        self.frame_speed_ms = 10
+        self.frame_speed_ms = 50
 
     @abc.abstractmethod
     def apply_effect(self, strip: LedStrip) -> None:

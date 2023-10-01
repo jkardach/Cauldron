@@ -9,9 +9,12 @@
   "python.analysis.extraPaths": [
     "./app"
   ],
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "editor.tabSize": 4,
   "editor.rulers": [
     80
-  ],
+],
+"python.formatting.blackArgs": [
+    "--line-length=79"
+],
 }
