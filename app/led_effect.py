@@ -1,5 +1,5 @@
 import abc
-from led.led_strip import LedStrip
+from led_strip import LedStrip
 import numpy as np
 import random
 import threading

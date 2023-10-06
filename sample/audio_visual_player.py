@@ -1,5 +1,5 @@
-import led.led_effect as led_effect
-import led.led_strip as led_strip
+import led_effect
+import led_strip
 import players
 from pydub import AudioSegment
 import time

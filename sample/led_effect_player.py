@@ -1,8 +1,10 @@
-import led.led_effect as led_effect
-import led.led_strip as led_strip
+import led_effect
+import led_strip
 from players import MockEffectPlayer
-from test_tools import NUM_PIXELS
 import time
+
+
+NUM_PIXELS = 50
 
 
 def test_mock_sine_wave():
@@ -16,6 +18,7 @@ def test_mock_sine_wave():
     player = MockEffectPlayer(mock_strip, sine_wave)
     handle = player.play()
     time.sleep(10)
+    handle.stop()
 
 
 test_mock_sine_wave()

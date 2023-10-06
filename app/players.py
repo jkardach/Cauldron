@@ -1,6 +1,6 @@
 import abc
-from led.led_strip import LedStrip
-from led.led_effect import LedEffect
+from led_strip import LedStrip
+from led_effect import LedEffect
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
