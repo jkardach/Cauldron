@@ -10,6 +10,7 @@ Adafruit-PureIO==1.1.11
 astroid==2.15.8
 black==23.9.1
 build==1.0.3
+-e git+https://github.com/jkardach/Cauldron.git@ab3ca3e3341649874589175b120d18b43457f37d#egg=cauldron
 click==8.1.7
 contourpy==1.1.1
 cycler==0.11.0
