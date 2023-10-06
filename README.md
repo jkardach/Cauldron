@@ -43,6 +43,6 @@ sudo python3 sample/led_effect.py
 ### UML Diagram
 ![UML Design](app/files/images/design.png)
 
-The code currently follows the above design. Objects with similar colors all share the same base object type. The heavily inheritance based design allows us to define define common behavior in base classes, and to enable the use of mock objects. For example:
+The code currently follows the above design. Objects with similar colors all share the same base object type. The inheritance-heavy design allows us to define common behavior in base classes and to enable the use of mock objects. For example:
 
 MockStrip uses a (NUM_PIXELS x 3) numpy array to represent an RGB LED strip. We can use the MockStrip anywhere an LedStrip is expected. This allows us to test LedEffects, which apply an effect on an LedStrip, without needing a physical LED strip.
