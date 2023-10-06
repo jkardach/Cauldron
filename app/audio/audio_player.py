@@ -60,9 +60,9 @@ class PydubAudioPlayer(AudioPlayer):
         self._file = file
         self._lock = threading.Lock()
         self._sound = AudioSegment.from_wav(self._file)
-        self._loop_thread = None
         self._loop_handler = None
         self._play_buffer = None
+        self._play_audio = False
 
     def _create_play_buffer(self) -> sa.PlayObject:
         return sa.play_buffer(
@@ -88,12 +88,10 @@ class PydubAudioPlayer(AudioPlayer):
 
     def loop(self) -> PlaybackHandle:
         with self._lock:
-            if self._loop_handler is None:
+            if self._loop_handler is not None:
                 return self._loop_handler
             self._play_audio = True
-            self._loop_thread = threading.Thread(
-                target=self._loop_audio
-            ).start()
+            threading.Thread(target=self._loop_audio).start()
             self._loop_handler = PlaybackHandle(self)
             return self._loop_handler
 
