@@ -1,6 +1,6 @@
 env
 **/__pycache__
-**/**egg-info
+**/*.*egg-info
 src
 lib
 target
