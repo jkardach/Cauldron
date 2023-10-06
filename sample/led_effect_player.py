@@ -17,8 +17,11 @@ def test_mock_sine_wave():
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
     player = MockEffectPlayer(mock_strip, sine_wave)
     handle = player.play()
-    time.sleep(10)
-    handle.stop()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
 
 
 test_mock_sine_wave()

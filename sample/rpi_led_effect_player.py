@@ -1,6 +1,5 @@
 import board
 import led_effect
-import led_strip
 from neopixel_strip import NeoPixelStrip
 import neopixel
 from players import LedEffectPlayer
