@@ -1,5 +1,11 @@
+# neopixel_strip.py needs to be separated from the led_strip.py for development
+# environments which do not have access to RPI libraries.
+
 from led_strip import LedStrip
 from neopixel import NeoPixel
+
+
+_RGB_COLOR_SIZE = 3
 
 
 class NeoPixelStrip(LedStrip):

@@ -1,6 +1,6 @@
-### Setup Python Environment
+## Setup Python Environment
 
-#### Development Environment 
+### Development Environment 
 Within the project root directory.
 ```
 # Install virtualenv
@@ -24,7 +24,7 @@ pip install -e .
 python sample/led_effect.py
 ```
 
-#### Raspberry Pi LED Environment
+### Raspberry Pi LED Environment
 
 Within the project root directory.
 ```
@@ -37,3 +37,12 @@ sudo python3 -m pip install -e .
 # Run sample scripts
 sudo python3 sample/led_effect.py
 ```
+
+## Design
+
+### UML Diagram
+![UML Design](app/files/images/design.png)
+
+The code currently follows the above design. Objects with similar colors all share the same base object type. The heavily inheritance based design allows us to define define common behavior in base classes, and to enable the use of mock objects. For example:
+
+MockStrip uses a (NUM_PIXELS x 3) numpy array to represent an RGB LED strip. We can use the MockStrip anywhere an LedStrip is expected. This allows us to test LedEffects, which apply an effect on an LedStrip, without needing a physical LED strip.

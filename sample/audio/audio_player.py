@@ -1,14 +1,18 @@
-import audio.audio_player as ap
+from players import AudioPlayer
+from pydub import AudioSegment
 import time
 
 
 def play_bubble_sound():
-    player = ap.PydubAudioPlayer(
-        "/home/tkardach/dev/CauldronPy/app/files/audio/bubbles.wav"
-    )
+    segment = AudioSegment.from_file("app/files/audio/bubbles.wav")
+    segment.frame_rate = int(segment.frame_rate / 2)
+    player = AudioPlayer(segment)
     handle = player.loop()
-    time.sleep(10)
-    handle.stop()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
 
 
 play_bubble_sound()

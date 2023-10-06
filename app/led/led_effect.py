@@ -1,12 +1,8 @@
 import abc
 from led.led_strip import LedStrip
-from numpy.random import choice
 import numpy as np
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
 import random
 import threading
-import time
 
 
 TWO_PI = np.pi * 2
@@ -19,110 +15,6 @@ class LedEffect(abc.ABC):
     @abc.abstractmethod
     def apply_effect(self, strip: LedStrip) -> None:
         return None
-
-
-class EffectHandle:
-    def __init__(self, player: "EffectPlayer"):
-        self._player = player
-
-    def stop(self) -> None:
-        self._player.stop()
-
-
-class EffectPlayer(abc.ABC):
-    def __init__(self, strip: LedStrip, effect: LedEffect):
-        self._strip = strip
-        self._effect = effect
-
-    @abc.abstractmethod
-    def play(self) -> EffectHandle:
-        return None
-
-    @abc.abstractmethod
-    def stop(self):
-        return None
-
-
-class MockEffectPlayer(EffectPlayer):
-    def __init__(self, strip: LedStrip, effect: LedEffect):
-        EffectPlayer.__init__(self, strip, effect)
-        self._lock = threading.Lock()
-        self._handle = None
-
-    def _loop_effect(self):
-        num_pixels = self._strip.num_pixels()
-        x = np.arange(0, num_pixels, 1)
-        y = [3] * num_pixels
-        fig, ax = plt.subplots()
-        ax.set(xlim=[0, num_pixels], ylim=[0, 6])
-
-        # Create scatter plot to simulate LEDs
-        scat = plt.scatter(x, y, s=50)
-
-        # Create set_pixels callback to change the LED scatter plot dot colors
-        def set_pixels(pixels: np.array):
-            scat.set_color(pixels / 255.0)
-
-        # Set the show callback to update the pixel colors. This will call
-        # set_pixels when LedStrip.show is called.
-        self._strip.set_show_callback(set_pixels)
-
-        # Create the pyplot animation update method. This will update the
-        # LedStrip pixels
-        def update(_):
-            self._effect.apply_effect(self._strip)
-            return scat
-
-        ani = animation.FuncAnimation(
-            fig=fig,
-            func=update,
-            frames=40,
-            interval=self._effect.frame_speed_ms,
-        )
-        plt.show()
-        return EffectHandle(self)
-
-    def play(self) -> EffectHandle:
-        self._loop_effect()
-        return None
-
-    def stop(self) -> None:
-        self._play_effect = False
-
-
-class LedEffectPlayer(EffectPlayer):
-    def __init__(self, strip: LedStrip, effect: LedEffect):
-        EffectPlayer.__init__(self, strip, effect)
-        self._play_effect = False
-        self._handle = None
-        self._lock = threading.Lock()
-
-    def _loop_effect(self):
-        while self._play_effect:
-            self._effect.apply_effect(self._strip)
-            time.sleep(self._effect.frame_speed_ms / 1000.0)
-
-    def play(self) -> EffectHandle:
-        with self._lock:
-            if self._handle:
-                return self._handle
-            self._play_effect = True
-            self._loop_thread = threading.Thread(
-                target=self._loop_effect
-            ).start()
-            self._handle = EffectHandle(self)
-            return self._handle
-
-    def stop(self) -> None:
-        self._play_effect = False
-
-
-def play_effect(effect: LedEffect, strip: LedStrip):
-    assert effect is not None
-    assert strip is not None
-    while True:
-        effect.apply_effect(strip)
-        time.sleep(effect.frame_speed_ms / 1000.0)
 
 
 class SineWaveEffect(LedEffect):
