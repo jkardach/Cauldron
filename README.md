@@ -1,5 +1,16 @@
 ## Setup Python Environment
 
+### Prerequisites
+On Mac OS
+```
+brew install ffmpeg
+```
+
+On Raspberry Pi
+```
+sudo apt-get install -y python3-dev libasound2-dev
+```
+
 ### Development Environment 
 Within the project root directory.
 ```
