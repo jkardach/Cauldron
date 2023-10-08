@@ -80,7 +80,7 @@ class LedEffectPlayer(Player):
     def _play(self):
         self._loop()
 
-    def stop(self) -> None:
+    def stop(self):
         with self._lock:
             self._play_effect = False
 

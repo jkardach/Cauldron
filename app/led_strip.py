@@ -57,7 +57,7 @@ class MockStrip(LedStrip):
     def set_show_callback(self, show_callback: Callable[[np.array], None]):
         self._show_callback = show_callback
 
-    def fill(self, color: list) -> None:
+    def fill(self, color: list):
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels = np.array([color] * self._num_pixels)
 
@@ -67,16 +67,16 @@ class MockStrip(LedStrip):
         ), f"{pixels.shape} != {self._pixels.shape}"
         self._pixels = pixels.copy()
 
-    def set_pixel_color(self, index: int, color: list) -> None:
+    def set_pixel_color(self, index: int, color: list):
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels[index] = color
 
-    def set_brightness(self, brightness: int) -> None:
+    def set_brightness(self, brightness: int):
         return None
 
     def num_pixels(self) -> int:
         return self._num_pixels
 
-    def show(self) -> None:
+    def show(self):
         if self._show_callback:
             self._show_callback(self._pixels)

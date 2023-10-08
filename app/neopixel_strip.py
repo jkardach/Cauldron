@@ -12,7 +12,7 @@ class NeoPixelStrip(LedStrip):
     def __init__(self, neopixel: NeoPixel):
         self.neopixel = neopixel
 
-    def fill(self, color: list) -> None:
+    def fill(self, color: list):
         assert len(color) == _RGB_COLOR_SIZE
         self.neopixel.fill(np.floor(color).tolist())
 
@@ -20,16 +20,16 @@ class NeoPixelStrip(LedStrip):
         assert len(pixels) == len(self.neopixel)
         self.neopixel[:] = pixels.astype(int).tolist()
 
-    def set_pixel_color(self, index: int, color: list) -> None:
+    def set_pixel_color(self, index: int, color: list):
         assert len(color) == _RGB_COLOR_SIZE
         self.neopixel[index] = color
 
-    def set_brightness(self, brightness: int) -> None:
+    def set_brightness(self, brightness: int):
         self.neopixel.brightness = brightness
 
     def num_pixels(self) -> int:
         return len(self.neopixel)
 
-    def show(self) -> None:
+    def show(self):
         if not self.neopixel.auto_write:
             self.neopixel.show()

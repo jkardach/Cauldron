@@ -13,7 +13,7 @@ class LedEffect(abc.ABC):
         self.frame_speed_ms = 50
 
     @abc.abstractmethod
-    def apply_effect(self, strip: LedStrip) -> None:
+    def apply_effect(self, strip: LedStrip):
         return None
 
 
@@ -82,7 +82,7 @@ class SineWaveEffect(LedEffect):
         self._amplitude_x += self._amplitude_inc
         self._current_a = self._amplitudes * np.cos(self._amplitude_x)
 
-    def apply_effect(self, strip: LedStrip) -> None:
+    def apply_effect(self, strip: LedStrip):
         """Applies the sine wave effect onto the LedStrip."""
         num_pixels = strip.num_pixels()
         x_values = np.array([np.arange(0, TWO_PI, TWO_PI / num_pixels)])
@@ -98,7 +98,7 @@ class SineWaveEffect(LedEffect):
         return self._b
 
     @wave_length.setter
-    def wave_length(self, b: float) -> None:
+    def wave_length(self, b: float):
         with self._lock:
             self._b = b
 
@@ -107,7 +107,7 @@ class SineWaveEffect(LedEffect):
         return self._oscillate
 
     @oscillate.setter
-    def oscillate(self, enable: bool) -> None:
+    def oscillate(self, enable: bool):
         with self._lock:
             self.oscillate = enable
 
@@ -116,7 +116,7 @@ class SineWaveEffect(LedEffect):
         return self._oscillation_speed_ms
 
     @oscillation_speed_ms.setter
-    def oscillation_speed_ms(self, speed_ms: int) -> None:
+    def oscillation_speed_ms(self, speed_ms: int):
         with self._lock:
             self._oscillation_speed_ms = speed_ms
             self._oscillation_inc = speed_ms / self.frame_speed_ms
@@ -153,7 +153,7 @@ class BubbleEffect(LedEffect):
         x_inc = TWO_PI / (length - 1)
         return np.arange(0, TWO_PI + x_inc, x_inc)
 
-    def apply_effect(self, strip: LedStrip) -> None:
+    def apply_effect(self, strip: LedStrip):
         """Applies a bubble to the LedStrip."""
         num_pixels = strip.num_pixels()
         # Calculate x values of the bubble
@@ -176,3 +176,39 @@ class BubbleEffect(LedEffect):
         strip[bubble_x_values] = colors
         self._current_increment += 1
         strip.show()
+
+
+class BubbleEffect(LedEffect):
+    def __init__(
+        self,
+        bubble_index: int,
+        base_color: list,
+        bubble_color: list,
+        bubble_length: int = 5,
+        bubble_pop_speed_ms: int = 3000,
+    ):
+        assert bubble_index >= 0
+        LedEffect.__init__(self)
+        self._bubble_index = bubble_index - int(bubble_length / 2)
+        self._base_color = np.array([base_color])
+        self._bubble_color = np.array([bubble_color])
+        self._bubble_pop_speed_ms = bubble_pop_speed_ms
+        self._bubble_length = bubble_length
+        # Calculate number of frames it will take for the animation to complete
+        self._pop_increments = int(
+            self._bubble_pop_speed_ms / self.frame_speed_ms
+        )
+        self._current_increment = 0
+        # Calculate bubble y value amplitude increments
+        x_values = self._get_x_values(self._pop_increments)
+        self._y_increments = np.array((np.cos(x_values + np.pi) + 1) / 2)
+        # Calculate bubble max amplitude
+        self._bubble_amplitude = self._bubble_color - self._base_color
+
+    def _get_x_values(self, length: int) -> np.array:
+        x_inc = TWO_PI / (length - 1)
+        return np.arange(0, TWO_PI + x_inc, x_inc)
+
+    def apply_effect(self, strip: LedStrip):
+        """Applies a bubble to the LedStrip."""
+        return None
