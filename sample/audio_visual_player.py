@@ -11,18 +11,30 @@ NUM_PIXELS = 50
 def play_bubble_effect():
     # Initialize the AudioPlayer
     segment = AudioSegment.from_file("app/files/audio/bubbles.wav")
-    segment.frame_rate = int(segment.frame_rate / 2)
+    segment.frame_rate = int(segment.frame_rate / 4)
     audio_player = players.AudioPlayer(segment)
 
-    color0 = [3, 252, 11]
-    color1 = [229, 245, 5]
+    color0 = [32, 139, 25]
+    color1 = [43, 199, 32]
 
     # Initialize the MockEffectPlayer
-    sine_wave = led_effect.SineWaveEffect(
-        color0, color1, oscillate=True, b=5, oscillation_speed_ms=2000
+    bubble_lengths = [7, 9, 11]
+    bubble_pop_speeds = [3000, 4000, 5000]
+    weights = [0.5, 0.25, 0.25]
+
+    bubble_effect = led_effect.BubblingEffect(
+        color0,
+        color1,
+        bubble_lengths,
+        weights,
+        bubble_pop_speeds,
+        weights,
+        15,
+        0.05,
     )
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
-    effect_player = players.MockEffectPlayer(mock_strip, sine_wave)
+    effect_player = players.MockEffectPlayer(mock_strip, bubble_effect)
+    mock_strip.fill(color0)
 
     # Initialize the MockAudioVisualPlayer
     av_player = players.MockAudioVisualPlayer(effect_player, audio_player)

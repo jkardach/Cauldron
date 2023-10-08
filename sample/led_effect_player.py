@@ -42,5 +42,34 @@ def test_bubble_effect():
         handle.stop()
 
 
+def test_bubbling_effect():
+    color0 = [32, 139, 25]
+    color1 = [43, 199, 32]
+    bubble_lengths = [7, 9, 11]
+    bubble_pop_speeds = [3000, 4000, 5000]
+    weights = [0.5, 0.25, 0.25]
+
+    bubble_effect = led_effect.BubblingEffect(
+        color0,
+        color1,
+        bubble_lengths,
+        weights,
+        bubble_pop_speeds,
+        weights,
+        10,
+        0.05,
+    )
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    player = MockEffectPlayer(mock_strip, bubble_effect)
+    mock_strip.fill(color0)
+    handle = player.play()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
+
+
 # test_mock_sine_wave()
-test_bubble_effect()
+# test_bubble_effect()
+test_bubbling_effect()

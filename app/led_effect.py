@@ -1,6 +1,7 @@
 import abc
 from led_strip import LedStrip
 import numpy as np
+from numpy.random import choice
 import random
 import threading
 
@@ -178,37 +179,57 @@ class BubbleEffect(LedEffect):
         strip.show()
 
 
-class BubbleEffect(LedEffect):
+class BubblingEffect(LedEffect):
     def __init__(
         self,
-        bubble_index: int,
         base_color: list,
         bubble_color: list,
-        bubble_length: int = 5,
-        bubble_pop_speed_ms: int = 3000,
+        bubble_lengths: list,
+        bubble_length_weights: list,
+        bubble_pop_speeds_ms: list,
+        bubble_pop_speed_weights: list,
+        max_bubbles: int,
+        bubble_spawn_prob: float,
     ):
-        assert bubble_index >= 0
         LedEffect.__init__(self)
-        self._bubble_index = bubble_index - int(bubble_length / 2)
+        assert len(bubble_lengths) == len(bubble_length_weights)
+        assert len(bubble_pop_speeds_ms) == len(bubble_pop_speed_weights)
+        assert bubble_spawn_prob > 0 and bubble_spawn_prob <= 1
         self._base_color = np.array([base_color])
         self._bubble_color = np.array([bubble_color])
-        self._bubble_pop_speed_ms = bubble_pop_speed_ms
-        self._bubble_length = bubble_length
-        # Calculate number of frames it will take for the animation to complete
-        self._pop_increments = int(
-            self._bubble_pop_speed_ms / self.frame_speed_ms
-        )
-        self._current_increment = 0
-        # Calculate bubble y value amplitude increments
-        x_values = self._get_x_values(self._pop_increments)
-        self._y_increments = np.array((np.cos(x_values + np.pi) + 1) / 2)
-        # Calculate bubble max amplitude
-        self._bubble_amplitude = self._bubble_color - self._base_color
+        self._max_bubbles = max_bubbles
+        self._bubble_spawn_prob = bubble_spawn_prob
+        self._bubble_lengths = bubble_lengths
+        self._bubble_length_weights = bubble_length_weights
+        self._bubble_pop_speeds = bubble_pop_speeds_ms
+        self._bubble_pop_speed_weights = bubble_pop_speed_weights
+        self._current_bubbles: dict[int, BubbleEffect] = {}
 
-    def _get_x_values(self, length: int) -> np.array:
-        x_inc = TWO_PI / (length - 1)
-        return np.arange(0, TWO_PI + x_inc, x_inc)
+    def _spawn_bubble(self):
+        return random.random() <= self._bubble_spawn_prob
 
     def apply_effect(self, strip: LedStrip):
         """Applies a bubble to the LedStrip."""
-        return None
+        spawn_bubble = self._spawn_bubble()
+        num_pixels = strip.num_pixels()
+        if spawn_bubble and len(self._current_bubbles) < self._max_bubbles:
+            bubble_index = random.randint(0, num_pixels - 1)
+            while bubble_index in self._current_bubbles:
+                bubble_index = random.randint(0, num_pixels - 1)
+            bubble_length = choice(
+                self._bubble_lengths, 1, p=self._bubble_length_weights
+            )[0]
+            bubble_pop_speed_ms = choice(
+                self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
+            )[0]
+            bubble_effect = BubbleEffect(
+                bubble_index,
+                self._base_color,
+                self._bubble_color,
+                bubble_length,
+                bubble_pop_speed_ms,
+            )
+            self._current_bubbles[bubble_index] = bubble_effect
+        for bubbles in self._current_bubbles.values():
+            bubbles.apply_effect(strip)
+        strip.show()
