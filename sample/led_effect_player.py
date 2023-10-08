@@ -24,4 +24,23 @@ def test_mock_sine_wave():
         handle.stop()
 
 
-test_mock_sine_wave()
+def test_bubble_effect():
+    color0 = [32, 139, 25]
+    color1 = [43, 199, 32]
+
+    bubble_effect = led_effect.BubbleEffect(
+        int(NUM_PIXELS / 2), color0, color1, bubble_length=9
+    )
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    player = MockEffectPlayer(mock_strip, bubble_effect)
+    mock_strip.fill(color0)
+    handle = player.play()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
+
+
+# test_mock_sine_wave()
+test_bubble_effect()

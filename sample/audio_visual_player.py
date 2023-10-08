@@ -19,7 +19,7 @@ def play_bubble_effect():
 
     # Initialize the MockEffectPlayer
     sine_wave = led_effect.SineWaveEffect(
-        color0, color1, oscillate=True, b=5, oscillation_speed_ms=1000
+        color0, color1, oscillate=True, b=5, oscillation_speed_ms=2000
     )
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
     effect_player = players.MockEffectPlayer(mock_strip, sine_wave)

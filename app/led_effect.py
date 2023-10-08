@@ -123,104 +123,56 @@ class SineWaveEffect(LedEffect):
 
 
 class BubbleEffect(LedEffect):
-    """Applies a modifyable bubbling effect onto an LedStrip."""
-
     def __init__(
         self,
+        bubble_index: int,
         base_color: list,
         bubble_color: list,
-        max_bubble_count: int = 5,
-        max_bubble_length: int = 7,
-        spawn_chance: float = 0.2,
-        spawn_interval_ms: int = 100,
-        bubble_pop_speed_ms: int = 250,
+        bubble_length: int = 5,
+        bubble_pop_speed_ms: int = 3000,
     ):
-        """Initialize the BubbleEffect."""
+        assert bubble_index >= 0
         LedEffect.__init__(self)
-        self._min_bubble_length = 3
-        self._lock = threading.Lock()
-        # Convert colors to numpy arrays
+        self._bubble_index = bubble_index - int(bubble_length / 2)
         self._base_color = np.array([base_color])
         self._bubble_color = np.array([bubble_color])
-        self._max_bubble_count = max_bubble_count
-        self._max_bubble_length = max_bubble_length
-        self._spawn_chance = spawn_chance
-        self._spawn_interval_ms = spawn_interval_ms
         self._bubble_pop_speed_ms = bubble_pop_speed_ms
-        self._current_iteration = 0
-        self._spawn_iteration = 0
-
-        # Example of weighted random values
-        # sampleList = [100, 200, 300, 400, 500]
-        # randomNumberList = numpy.random.choice(
-        #     sampleList, 5, p=[0.05, 0.1, 0.15, 0.20, 0.5])
-
-        self._bubble_indices = set()
-        self._current_bubbles: list[list] = []
-        self._bubble_y_values: list[np.array] = []
-        for length in range(
-            self._min_bubble_length, self._max_bubble_length + 1
-        ):
-            x_inc = 2 / length
-            x_values = np.arange(0, 2 + 2 / x_inc, x_inc)
-            # Calculate y values of the circle equation.
-            self._bubble_y_values.append(np.sqrt(1 - (x_values - 1) ** 2))
-
-    def _create_bubble_locked(self, num_pixels: int):
-        """Create bubble with random size at random index."""
-        assert self._lock.locked
-        bubble_index = random.randrange(0, num_pixels + 1)
-        while bubble_index in self._bubble_indices:
-            bubble_index = random.randrange(0, num_pixels + 1)
-        self._bubble_indices.add(bubble_index)
-        bubble_length = random.randrange(
-            self._min_bubble_length, self._max_bubble_length + 1
+        self._bubble_length = bubble_length
+        # Calculate number of frames it will take for the animation to complete
+        self._pop_increments = int(
+            self._bubble_pop_speed_ms / self.frame_speed_ms
         )
-        if bubble_length % 2 == 0:
-            bubble_length += 1
-        half_bubble = bubble_length / 2
-        bubble_start = max(0, bubble_index - half_bubble)
-        bubble_end = min(num_pixels - 1, bubble_index + half_bubble)
-        self._current_bubbles.append((bubble_start, bubble_end))
+        self._current_increment = 0
+        # Calculate bubble y value amplitude increments
+        x_values = self._get_x_values(self._pop_increments)
+        self._y_increments = np.array((np.cos(x_values + np.pi) + 1) / 2)
+        # Calculate bubble max amplitude
+        self._bubble_amplitude = self._bubble_color - self._base_color
 
-    def _create_bubbles_locked(self, num_pixels: int):
-        assert self._lock.locked
-        num_pixels = num_pixels
-        # If we have not maxed out our bubbles
-        if len(self._bubble_indices) < self._max_bubble_count:
-            spawn_bubbles = (
-                self._current_iteration
-                * self.frame_speed_ms
-                / self._spawn_interval_ms
-            ) < self._spawn_iteration
-            if spawn_bubbles:
-                return None
+    def _get_x_values(self, length: int) -> np.array:
+        x_inc = TWO_PI / (length - 1)
+        return np.arange(0, TWO_PI + x_inc, x_inc)
 
     def apply_effect(self, strip: LedStrip) -> None:
-        """Applies the sine wave effect onto the LedStrip."""
-        with self._lock:
-            num_pixels = strip.num_pixels()
-            if len(self._bubble_indices) < self._max_bubble_count:
-                spawn_bubbles = (
-                    self._current_iteration
-                    * self.frame_speed_ms
-                    / self._spawn_interval_ms
-                ) < self._spawn_iteration
-                if spawn_bubbles:
-                    bubble_index = random.randrange(0, num_pixels + 1)
-                    while bubble_index in self._bubble_indices:
-                        bubble_index = random.randrange(0, num_pixels + 1)
-                    self._bubble_indices.add(bubble_index)
-                    bubble_length = random.randrange(
-                        self._min_bubble_length, self._max_bubble_length + 1
-                    )
-                    if bubble_length % 2 == 0:
-                        bubble_length += 1
-                    half_bubble = bubble_length / 2
-                    bubble_start = max(0, bubble_index - half_bubble)
-                    bubble_end = min(
-                        num_pixels - 1, bubble_index + half_bubble
-                    )
-                    self._current_bubbles.append((bubble_start, bubble_end))
-
-            strip.show()
+        """Applies a bubble to the LedStrip."""
+        num_pixels = strip.num_pixels()
+        # Calculate x values of the bubble
+        assert self._bubble_index < num_pixels
+        max_index = min(
+            num_pixels - 1, self._bubble_index + self._bubble_length
+        )
+        bubble_x_values = np.arange(self._bubble_index, max_index, 1)
+        x_values = np.array([self._get_x_values(len(bubble_x_values))])
+        # Calculate the y values of the current bubble increment
+        amp_fact = self._y_increments[
+            self._current_increment % self._pop_increments
+        ]
+        amplitude = amp_fact * self._bubble_amplitude
+        colors = (
+            np.array((np.cos(x_values + np.pi) + 1).T * amplitude)
+            + self._base_color
+        )
+        colors = np.clip(colors, 0, 255)
+        strip[bubble_x_values] = colors
+        self._current_increment += 1
+        strip.show()
