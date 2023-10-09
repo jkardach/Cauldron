@@ -24,8 +24,13 @@ class NeoPixelStrip(LedStrip):
         assert len(color) == _RGB_COLOR_SIZE
         self.neopixel[index] = color
 
-    def set_brightness(self, brightness: int):
-        self.neopixel.brightness = brightness
+    @property
+    def brightness(self) -> float:
+        return self._pixels.brightness
+
+    @brightness.setter
+    def brightness(self, brightness: float):
+        self._pixels.brightness = brightness
 
     def num_pixels(self) -> int:
         return len(self.neopixel)

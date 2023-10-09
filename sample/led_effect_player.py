@@ -1,6 +1,7 @@
 import led_effect
 import led_strip
 from players import MockEffectPlayer
+from pydub import AudioSegment
 import time
 
 
@@ -70,6 +71,24 @@ def test_bubbling_effect():
         handle.stop()
 
 
+def test_a2b_effect():
+    segment = AudioSegment.from_file("app/files/audio/bubbles.wav")
+    color0 = [32, 139, 25]
+
+    a2b_effect = led_effect.AudioToBrightnessEffect(segment)
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    mock_strip.brightness = 0.5
+    player = MockEffectPlayer(mock_strip, a2b_effect)
+    mock_strip.fill(color0)
+    handle = player.play()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
+
+
 # test_mock_sine_wave()
 # test_bubble_effect()
-test_bubbling_effect()
+# test_bubbling_effect()
+test_a2b_effect()

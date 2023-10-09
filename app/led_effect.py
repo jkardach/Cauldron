@@ -2,6 +2,7 @@ import abc
 from led_strip import LedStrip
 import numpy as np
 from numpy.random import choice
+from pydub import AudioSegment
 import random
 import threading
 
@@ -232,4 +233,37 @@ class BubblingEffect(LedEffect):
             self._current_bubbles[bubble_index] = bubble_effect
         for bubbles in self._current_bubbles.values():
             bubbles.apply_effect(strip)
+        strip.show()
+
+
+class AudioToBrightnessEffect(LedEffect):
+    """Changes the brightness of the LedStrip based on AudioSegment volume."""
+
+    def __init__(self, segment: AudioSegment):
+        LedEffect.__init__(self)
+        data = np.frombuffer(segment.raw_data, dtype=np.int16)
+        data = data.copy()
+        data[data < 0] = 0
+        self._normalized_data = (data - np.min(data)) / (
+            np.max(data) - np.min(data)
+        )
+        self._normalized_data += 0.5
+        self._normalized_data = np.clip(self._normalized_data, 0, 1.0)
+        self._duration_s = segment.duration_seconds
+        self._current_iteration = 0
+        self._iteration_increment = int(
+            segment.duration_seconds * 1000 / self.frame_speed_ms
+        )
+        self._starting_brightness = None
+
+    def apply_effect(self, strip: LedStrip):
+        """Applies a bubble to the LedStrip."""
+        if self._starting_brightness is None:
+            self._starting_brightness = strip.brightness
+        brightness = self._normalized_data[self._current_iteration]
+        strip.brightness = brightness
+        self._current_iteration += self._iteration_increment
+        if self._current_iteration > len(self._normalized_data):
+            strip.brightness = self._starting_brightness
+            self._current_iteration = 0
         strip.show()

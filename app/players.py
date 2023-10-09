@@ -175,17 +175,47 @@ class MockEffectPlayer(Player):
         self._effect = effect
 
     def _loop(self):
-        fig, ax = plt.subplots()
+        brightness_x_limit = 100
+        fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(12, 6))
         num_pixels = self._strip.num_pixels()
         x = np.arange(0, num_pixels, 1)
         y = [3] * num_pixels
-        ax.set(xlim=[0, num_pixels], ylim=[0, 6])
+        scat_ax = ax[0, 0]
+        r_ax = ax[0, 1]
+        g_ax = ax[1, 1]
+        b_ax = ax[2, 1]
+        brightness_ax = ax[1, 0]
+        scat_ax.set(xlim=[0, num_pixels], ylim=[0, 6])
+        r_ax.set(xlim=[0, num_pixels], ylim=[0, 255])
+        r_ax.set_title("RGB channels")
+        g_ax.set(xlim=[0, num_pixels], ylim=[0, 255])
+        b_ax.set(xlim=[0, num_pixels], ylim=[0, 255])
+        brightness_ax.set(xlim=[0, brightness_x_limit], ylim=[0, 1.1])
         # Create scatter plot to simulate LEDs
-        scat = plt.scatter(x, y, s=50)
+        scat = scat_ax.scatter(x, y, s=50)
+        (r_plot,) = r_ax.plot(self._strip[:, 0])
+        (g_plot,) = g_ax.plot(self._strip[:, 1])
+        (b_plot,) = b_ax.plot(self._strip[:, 2])
+        brightness_values = []
+        (brightness_plot,) = brightness_ax.plot(brightness_values)
+        r_plot.set_color((1, 0, 0))
+        g_plot.set_color((0, 1, 0))
+        b_plot.set_color((0, 0, 1))
 
         # Create set_pixels callback to change the LED scatter plot dot colors
         def set_pixels(pixels: np.array):
+            brightness_values.append(self._strip.brightness)
+            while len(brightness_values) > brightness_x_limit:
+                brightness_values.pop(0)
             scat.set_color(pixels / 255.0)
+            r_plot.set_ydata(pixels[:, 0])
+            g_plot.set_ydata(pixels[:, 1])
+            b_plot.set_ydata(pixels[:, 2])
+            brightness_plot.set_data(
+                np.arange(0, len(brightness_values), 1), brightness_values
+            )
+
+            fig.canvas.flush_events()
 
         # Set the show callback to update the pixel colors. This will call
         # set_pixels when LedStrip.show is called.

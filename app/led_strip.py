@@ -27,8 +27,14 @@ class LedStrip(abc.ABC):
     def set_pixel_color(self, index: int, color: tuple):
         return None
 
+    @property
     @abc.abstractmethod
-    def set_brightness(self, brightness: int):
+    def brightness(self) -> float:
+        return None
+
+    @brightness.setter
+    @abc.abstractmethod
+    def brightness(self, brightness: float):
         return None
 
     @abc.abstractmethod
@@ -47,6 +53,7 @@ class MockStrip(LedStrip):
         self._num_pixels = num_pixels
         self._pixels = np.zeros((num_pixels, 3))
         self._show_callback = show_callback
+        self._brightness = 1.0
 
     def __setitem__(self, indices, value):
         self._pixels[indices] = value
@@ -71,8 +78,13 @@ class MockStrip(LedStrip):
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels[index] = color
 
-    def set_brightness(self, brightness: int):
-        return None
+    @property
+    def brightness(self) -> float:
+        return self._brightness
+
+    @brightness.setter
+    def brightness(self, brightness: float):
+        self._brightness = brightness
 
     def num_pixels(self) -> int:
         return self._num_pixels
