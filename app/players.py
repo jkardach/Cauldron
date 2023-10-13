@@ -19,6 +19,9 @@ class Handle(abc.ABC):
     def __del__(self):
         self._player.stop()
 
+    def play_done(self) -> bool:
+        return self._player.play_done()
+
     def stop(self):
         self._player.stop()
 
@@ -35,18 +38,27 @@ class Player(abc.ABC):
     def __init__(self):
         self._handle = None
         self._lock = threading.Lock()
+        self._play_done = False
+        self._condition = threading.Condition()
+
+    def play_done(self) -> bool:
+        with self._lock:
+            return self._play_done
 
     @abc.abstractmethod
     def _play(self):
-        return None
+        self._play_done = True
+        self._condition.wait_for(self._play_done)
 
     @abc.abstractmethod
     def _loop(self):
-        return None
+        self._play_done = True
+        self._condition.wait_for(self._play_done)
 
     def play(self) -> Handle:
         """Runs _play on another thread, returning a Handle to the thread."""
         with self._lock:
+            self._play_done = False
             if self._handle:
                 return self._handle
             threading.Thread(target=self._play).start()
@@ -64,7 +76,8 @@ class Player(abc.ABC):
 
     @abc.abstractmethod
     def stop(self):
-        return None
+        self._play_done = True
+        self._condition.notify_all()
 
 
 class LedEffectPlayer(Player):
@@ -87,6 +100,7 @@ class LedEffectPlayer(Player):
 
     def stop(self):
         with self._lock:
+            Player.stop(self)
             self._play_effect = False
 
 
@@ -119,9 +133,12 @@ class AudioPlayer(Player):
         with self._lock:
             self._play_buffer = self._create_play_buffer(self._sound)
         self._play_buffer.wait_done()
+        self._play_done = True
+        self._condition.notify_all()
 
     def stop(self):
         with self._lock:
+            Player.stop(self)
             self._play_audio = False
             if self._play_buffer:
                 self._play_buffer.stop()
@@ -139,7 +156,6 @@ class AudioVisualPlayer(Player):
         self._playing = False
         self._effect_handle = None
         self._audio_handle = None
-        self._condition = threading.Condition()
 
     def _loop(self):
         with self._condition:
@@ -151,14 +167,17 @@ class AudioVisualPlayer(Player):
         with self._condition:
             self._audio_handle = self._audio_player.play()
             self._effect_handle = self._effect_player.play()
-            self._condition.wait()
+            self._condition.wait_for(
+                self._audio_handle.play_done()
+                and self._effect_handle.play_done()
+            )
 
     def stop(self):
         if self._handle is None:
             return None
         self._effect_handle.stop()
         self._audio_handle.stop()
-        self._condition.notify()
+        Player.stop(self)
 
 
 class MockAudioVisualPlayer(AudioVisualPlayer):
@@ -229,7 +248,7 @@ class MockEffectPlayer(Player):
         # Create the pyplot animation update method. This will update the
         # LedStrip pixels
         def update(_):
-            self._effect.apply_effect(self._strip)
+            self._effect.apply_effect()
             return scat
 
         ani = animation.FuncAnimation(
@@ -245,10 +264,10 @@ class MockEffectPlayer(Player):
         self._loop()
 
     def play(self):
-        self._loop()
+        return self._loop()
 
     def loop(self):
-        self._loop()
+        return self._loop()
 
     def stop(self):
         return None

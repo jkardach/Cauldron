@@ -34,10 +34,10 @@ def test_bubble_effect():
     color0 = [32, 139, 25]
     color1 = [43, 199, 32]
 
-    bubble_effect = led_effect.BubbleEffect(
-        int(NUM_PIXELS / 2), color0, color1, bubble_length=9
-    )
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    bubble_effect = led_effect.BubbleEffect(
+        mock_strip, int(NUM_PIXELS / 2), color0, color1, bubble_length=9
+    )
     player = MockEffectPlayer(mock_strip, bubble_effect)
     mock_strip.fill(color0)
     handle = player.play()
@@ -49,13 +49,19 @@ def test_bubble_effect():
 
 
 def test_bubbling_effect():
-    color0 = [32, 139, 25]
-    color1 = [43, 199, 32]
+    # color0 = [32, 139, 25]
+    # color1 = [43, 199, 32]
+    # color0 = [142, 75, 166]
+    # color1 = [196, 119, 223]
+    color0 = [255, 179, 0]
+    color1 = [255, 222, 0]
     bubble_lengths = [7, 9, 11]
     bubble_pop_speeds = [3000, 4000, 5000]
     weights = [0.5, 0.25, 0.25]
 
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
     bubble_effect = led_effect.BubblingEffect(
+        mock_strip,
         color0,
         color1,
         bubble_lengths,
@@ -65,7 +71,6 @@ def test_bubbling_effect():
         10,
         0.05,
     )
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
     player = MockEffectPlayer(mock_strip, bubble_effect)
     mock_strip.fill(color0)
     handle = player.play()
@@ -80,8 +85,8 @@ def test_a2b_effect():
     segment = AudioSegment.from_file("app/files/audio/poof.wav")
     color0 = [32, 139, 25]
 
-    a2b_effect = led_effect.AudioToBrightnessEffect(segment)
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    a2b_effect = led_effect.AudioToBrightnessEffect(mock_strip, segment)
     mock_strip.brightness = 0.5
     player = MockEffectPlayer(mock_strip, a2b_effect)
     mock_strip.fill(color0)
@@ -95,5 +100,5 @@ def test_a2b_effect():
 
 # test_mock_sine_wave()
 # test_bubble_effect()
-# test_bubbling_effect()
-test_a2b_effect()
+test_bubbling_effect()
+# test_a2b_effect()

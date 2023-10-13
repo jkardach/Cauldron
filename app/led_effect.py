@@ -247,6 +247,7 @@ class BubblingEffect(LedEffect):
                 self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
             )[0]
             bubble_effect = BubbleEffect(
+                self._strip,
                 bubble_index,
                 self._base_color,
                 self._bubble_color,
@@ -256,7 +257,7 @@ class BubblingEffect(LedEffect):
             with self._lock:
                 self._current_bubbles[bubble_index] = bubble_effect
         for bubbles in self._current_bubbles.values():
-            bubbles.apply_effect(self._strip)
+            bubbles.apply_effect()
         self._strip.show()
 
     def reset(self):

@@ -22,7 +22,9 @@ def play_bubble_effect():
     bubble_pop_speeds = [3000, 4000, 5000]
     weights = [0.5, 0.25, 0.25]
 
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
     bubble_effect = led_effect.BubblingEffect(
+        mock_strip,
         color0,
         color1,
         bubble_lengths,
@@ -32,7 +34,6 @@ def play_bubble_effect():
         15,
         0.05,
     )
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
     effect_player = players.MockEffectPlayer(mock_strip, bubble_effect)
     mock_strip.fill(color0)
 
@@ -53,9 +54,9 @@ def play_a2b_effect():
     segment = segment.set_sample_width(2)
     color0 = [32, 139, 25]
 
-    a2b_effect = led_effect.AudioToBrightnessEffect(segment)
-    audio_player = players.AudioPlayer(segment)
     mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    a2b_effect = led_effect.AudioToBrightnessEffect(mock_strip, segment)
+    audio_player = players.AudioPlayer(segment)
     mock_strip.brightness = 0.5
     effect_player = players.MockEffectPlayer(mock_strip, a2b_effect)
     mock_strip.fill(color0)
