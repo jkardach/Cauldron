@@ -241,23 +241,25 @@ class AudioToBrightnessEffect(LedEffect):
 
     def __init__(self, segment: AudioSegment):
         LedEffect.__init__(self)
-        data = np.frombuffer(segment.raw_data, dtype=np.int16)
-        data = data.copy()
-        data[data < 0] = 0
+        data = np.array(segment.get_array_of_samples())
+        data = np.abs(data.astype(np.int32))
         self._normalized_data = (data - np.min(data)) / (
             np.max(data) - np.min(data)
         )
-        self._normalized_data += 0.5
-        self._normalized_data = np.clip(self._normalized_data, 0, 1.0)
         self._duration_s = segment.duration_seconds
         self._current_iteration = 0
-        self._iteration_increment = int(
+        self._total_increments = int(
             segment.duration_seconds * 1000 / self.frame_speed_ms
         )
+        self._iteration_increment = int(
+            len(self._normalized_data) / self._total_increments
+        )
         self._starting_brightness = None
+        self._timestamp_ms = 0
 
     def apply_effect(self, strip: LedStrip):
         """Applies a bubble to the LedStrip."""
+        self._timestamp_ms += self.frame_speed_ms
         if self._starting_brightness is None:
             self._starting_brightness = strip.brightness
         brightness = self._normalized_data[self._current_iteration]

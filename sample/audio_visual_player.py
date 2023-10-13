@@ -48,4 +48,28 @@ def play_bubble_effect():
         handle.stop()
 
 
-play_bubble_effect()
+def play_a2b_effect():
+    segment = AudioSegment.from_file("app/files/audio/poof.wav")
+    segment = segment.set_sample_width(2)
+    color0 = [32, 139, 25]
+
+    a2b_effect = led_effect.AudioToBrightnessEffect(segment)
+    audio_player = players.AudioPlayer(segment)
+    mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    mock_strip.brightness = 0.5
+    effect_player = players.MockEffectPlayer(mock_strip, a2b_effect)
+    mock_strip.fill(color0)
+
+    # Initialize the MockAudioVisualPlayer
+    av_player = players.MockAudioVisualPlayer(effect_player, audio_player)
+
+    handle = av_player.loop()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        handle.stop()
+
+
+# play_bubble_effect()
+play_a2b_effect()

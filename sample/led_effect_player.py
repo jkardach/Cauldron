@@ -72,7 +72,7 @@ def test_bubbling_effect():
 
 
 def test_a2b_effect():
-    segment = AudioSegment.from_file("app/files/audio/bubbles.wav")
+    segment = AudioSegment.from_file("app/files/audio/poof.wav")
     color0 = [32, 139, 25]
 
     a2b_effect = led_effect.AudioToBrightnessEffect(segment)

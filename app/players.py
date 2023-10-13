@@ -230,7 +230,7 @@ class MockEffectPlayer(Player):
         ani = animation.FuncAnimation(
             fig=fig,
             func=update,
-            frames=40,
+            frames=60,
             interval=self._effect.frame_speed_ms,
         )
         plt.show()
