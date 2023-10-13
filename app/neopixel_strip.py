@@ -3,6 +3,7 @@
 
 from led_strip import LedStrip
 from neopixel import NeoPixel
+import numpy as np
 
 
 _RGB_COLOR_SIZE = 3
@@ -11,6 +12,12 @@ _RGB_COLOR_SIZE = 3
 class NeoPixelStrip(LedStrip):
     def __init__(self, neopixel: NeoPixel):
         self.neopixel = neopixel
+
+    def __setitem__(self, indices, value):
+        self.neopixel[indices] = value
+
+    def __getitem__(self, indices):
+        return self.neopixel[indices]
 
     def fill(self, color: list):
         assert len(color) == _RGB_COLOR_SIZE
@@ -26,11 +33,11 @@ class NeoPixelStrip(LedStrip):
 
     @property
     def brightness(self) -> float:
-        return self._pixels.brightness
+        return self.neopixel.brightness
 
     @brightness.setter
     def brightness(self, brightness: float):
-        self._pixels.brightness = brightness
+        self.neopixel.brightness = brightness
 
     def num_pixels(self) -> int:
         return len(self.neopixel)

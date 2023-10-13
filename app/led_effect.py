@@ -11,11 +11,12 @@ TWO_PI = np.pi * 2
 
 
 class LedEffect(abc.ABC):
-    def __init__(self):
+    def __init__(self, strip: LedStrip):
         self.frame_speed_ms = 50
+        self._strip = strip
 
     @abc.abstractmethod
-    def apply_effect(self, strip: LedStrip):
+    def apply_effect(self):
         return None
 
 
@@ -24,6 +25,7 @@ class SineWaveEffect(LedEffect):
 
     def __init__(
         self,
+        strip: LedStrip,
         color0: list,
         color1: list,
         b: float = 1,
@@ -31,7 +33,7 @@ class SineWaveEffect(LedEffect):
         oscillation_speed_ms: int = 250,
     ):
         assert len(color0) == len(color1)
-        LedEffect.__init__(self)
+        LedEffect.__init__(self, strip)
         self._lock = threading.Lock()
         # Convert colors to numpy arrays
         self._color0 = np.array(color0)
@@ -50,6 +52,9 @@ class SineWaveEffect(LedEffect):
         # Compute how much the amplitude should change between each frame
         self._amplitude_inc = (2 * np.pi) / self._oscillation_inc
         self._amplitude_x = 0
+
+        num_pixels = self._strip.num_pixels()
+        self._x_values = np.array([np.arange(0, TWO_PI, TWO_PI / num_pixels)])
 
     def _update_pixel_values_locked(self, x: np.array) -> np.array:
         """Returns the brightness value (y-value) of the sine wave.
@@ -84,16 +89,14 @@ class SineWaveEffect(LedEffect):
         self._amplitude_x += self._amplitude_inc
         self._current_a = self._amplitudes * np.cos(self._amplitude_x)
 
-    def apply_effect(self, strip: LedStrip):
+    def apply_effect(self):
         """Applies the sine wave effect onto the LedStrip."""
-        num_pixels = strip.num_pixels()
-        x_values = np.array([np.arange(0, TWO_PI, TWO_PI / num_pixels)])
         with self._lock:
-            pixels = self._update_pixel_values_locked(x_values)
-            strip.fill_copy(pixels)
+            pixels = self._update_pixel_values_locked(self._x_values)
+            self._strip.fill_copy(pixels)
             self._update_oscillation_locked()
 
-        strip.show()
+        self._strip.show()
 
     @property
     def wave_length(self) -> float:
@@ -127,6 +130,7 @@ class SineWaveEffect(LedEffect):
 class BubbleEffect(LedEffect):
     def __init__(
         self,
+        strip: LedStrip,
         bubble_index: int,
         base_color: list,
         bubble_color: list,
@@ -134,7 +138,10 @@ class BubbleEffect(LedEffect):
         bubble_pop_speed_ms: int = 3000,
     ):
         assert bubble_index >= 0
-        LedEffect.__init__(self)
+        LedEffect.__init__(self, strip)
+        num_pixels = self._strip.num_pixels()
+        # Calculate x values of the bubble
+        assert bubble_index < num_pixels
         self._bubble_index = bubble_index - int(bubble_length / 2)
         self._base_color = np.array([base_color])
         self._bubble_color = np.array([bubble_color])
@@ -151,38 +158,37 @@ class BubbleEffect(LedEffect):
         # Calculate bubble max amplitude
         self._bubble_amplitude = self._bubble_color - self._base_color
 
+        max_index = min(
+            num_pixels - 1, self._bubble_index + self._bubble_length
+        )
+        self._bubble_x_values = np.arange(self._bubble_index, max_index, 1)
+        self._x_values = np.array([self._get_x_values(len(bubble_x_values))])
+
     def _get_x_values(self, length: int) -> np.array:
         x_inc = TWO_PI / (length - 1)
         return np.arange(0, TWO_PI + x_inc, x_inc)
 
-    def apply_effect(self, strip: LedStrip):
+    def apply_effect(self):
         """Applies a bubble to the LedStrip."""
-        num_pixels = strip.num_pixels()
-        # Calculate x values of the bubble
-        assert self._bubble_index < num_pixels
-        max_index = min(
-            num_pixels - 1, self._bubble_index + self._bubble_length
-        )
-        bubble_x_values = np.arange(self._bubble_index, max_index, 1)
-        x_values = np.array([self._get_x_values(len(bubble_x_values))])
         # Calculate the y values of the current bubble increment
         amp_fact = self._y_increments[
             self._current_increment % self._pop_increments
         ]
         amplitude = amp_fact * self._bubble_amplitude
         colors = (
-            np.array((np.cos(x_values + np.pi) + 1).T * amplitude)
+            np.array((np.cos(self._x_values + np.pi) + 1).T * amplitude)
             + self._base_color
         )
         colors = np.clip(colors, 0, 255)
-        strip[bubble_x_values] = colors
+        self._strip[self._bubble_x_values] = colors
         self._current_increment += 1
-        strip.show()
+        self._strip.show()
 
 
 class BubblingEffect(LedEffect):
     def __init__(
         self,
+        strip: LedStrip,
         base_color: list,
         bubble_color: list,
         bubble_lengths: list,
@@ -192,7 +198,7 @@ class BubblingEffect(LedEffect):
         max_bubbles: int,
         bubble_spawn_prob: float,
     ):
-        LedEffect.__init__(self)
+        LedEffect.__init__(self, strip)
         assert len(bubble_lengths) == len(bubble_length_weights)
         assert len(bubble_pop_speeds_ms) == len(bubble_pop_speed_weights)
         assert bubble_spawn_prob > 0 and bubble_spawn_prob <= 1
@@ -209,10 +215,10 @@ class BubblingEffect(LedEffect):
     def _spawn_bubble(self):
         return random.random() <= self._bubble_spawn_prob
 
-    def apply_effect(self, strip: LedStrip):
+    def apply_effect(self):
         """Applies a bubble to the LedStrip."""
         spawn_bubble = self._spawn_bubble()
-        num_pixels = strip.num_pixels()
+        num_pixels = self._strip.num_pixels()
         if spawn_bubble and len(self._current_bubbles) < self._max_bubbles:
             bubble_index = random.randint(0, num_pixels - 1)
             while bubble_index in self._current_bubbles:
@@ -232,15 +238,15 @@ class BubblingEffect(LedEffect):
             )
             self._current_bubbles[bubble_index] = bubble_effect
         for bubbles in self._current_bubbles.values():
-            bubbles.apply_effect(strip)
-        strip.show()
+            bubbles.apply_effect(self._strip)
+        self._strip.show()
 
 
 class AudioToBrightnessEffect(LedEffect):
     """Changes the brightness of the LedStrip based on AudioSegment volume."""
 
-    def __init__(self, segment: AudioSegment):
-        LedEffect.__init__(self)
+    def __init__(self, strip: LedStrip, segment: AudioSegment):
+        LedEffect.__init__(self, strip)
         data = np.array(segment.get_array_of_samples())
         data = np.abs(data.astype(np.int32))
         self._normalized_data = (data - np.min(data)) / (
@@ -248,24 +254,27 @@ class AudioToBrightnessEffect(LedEffect):
         )
         self._duration_s = segment.duration_seconds
         self._current_iteration = 0
-        self._total_increments = int(
+        self._total_increments = (
             segment.duration_seconds * 1000 / self.frame_speed_ms
         )
-        self._iteration_increment = int(
+        self._iteration_increment = (
             len(self._normalized_data) / self._total_increments
         )
         self._starting_brightness = None
-        self._timestamp_ms = 0
 
-    def apply_effect(self, strip: LedStrip):
+    def apply_effect(self):
         """Applies a bubble to the LedStrip."""
-        self._timestamp_ms += self.frame_speed_ms
         if self._starting_brightness is None:
-            self._starting_brightness = strip.brightness
-        brightness = self._normalized_data[self._current_iteration]
-        strip.brightness = brightness
+            self._starting_brightness = self._strip.brightness
+        brightness = np.clip(
+            self._normalized_data[int(self._current_iteration)]
+            + self._starting_brightness,
+            0,
+            1,
+        )
+        self._strip.brightness = brightness
         self._current_iteration += self._iteration_increment
         if self._current_iteration > len(self._normalized_data):
-            strip.brightness = self._starting_brightness
-            self._current_iteration = 0
-        strip.show()
+            self._strip.brightness = self._starting_brightness
+            self._current_iteration -= len(self._normalized_data)
+        self._strip.show()

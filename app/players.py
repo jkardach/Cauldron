@@ -23,6 +23,12 @@ class Handle(abc.ABC):
         self._player.stop()
 
 
+def busy_sleep(seconds_to_sleep):
+    start = time.time()
+    while time.time() < start + seconds_to_sleep:
+        pass
+
+
 class Player(abc.ABC):
     """A Player asynchronously plays/loops an action on another thread."""
 
@@ -64,9 +70,8 @@ class Player(abc.ABC):
 class LedEffectPlayer(Player):
     """Plays an LedEffect on an LedStrip."""
 
-    def __init__(self, strip: LedStrip, effect: LedEffect):
+    def __init__(self, effect: LedEffect):
         Player.__init__(self)
-        self._strip = strip
         self._effect = effect
         self._play_effect = False
 
@@ -74,8 +79,8 @@ class LedEffectPlayer(Player):
         with self._lock:
             self._play_effect = True
         while self._play_effect:
-            self._effect.apply_effect(self._strip)
-            time.sleep(self._effect.frame_speed_ms / 1000.0)
+            self._effect.apply_effect()
+            busy_sleep(self._effect.frame_speed_ms / 1000.0)
 
     def _play(self):
         self._loop()
@@ -139,7 +144,7 @@ class AudioVisualPlayer(Player):
     def _loop(self):
         with self._condition:
             self._audio_handle = self._audio_player.loop()
-            self._effect_handle = self._effect_player.play()
+            self._effect_handle = self._effect_player.loop()
             self._condition.wait()
 
     def _play(self):
