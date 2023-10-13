@@ -1,10 +1,10 @@
 import board
-from led_effect import SineWaveEffect
+import led_effect
+import led_strip
 import neopixel
+import players
 
 
-class BubblingEffect(SineWaveEffect):
-    """Simulates a bubbling affect on an LedStrip."""
-
-    def __init__(self, bubbling_speed: float = 0.5):
-        self.bubbling_speed = 1
+class Cauldron:
+    def __init__(self, strip: led_strip.LedStrip):
+        self._strip = strip

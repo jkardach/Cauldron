@@ -19,6 +19,10 @@ class LedEffect(abc.ABC):
     def apply_effect(self):
         return None
 
+    @abc.abstractmethod
+    def reset(self):
+        return None
+
 
 class SineWaveEffect(LedEffect):
     """Applies a modifyable sine wave effect onto an LedStrip."""
@@ -98,6 +102,11 @@ class SineWaveEffect(LedEffect):
 
         self._strip.show()
 
+    def reset(self):
+        with self._lock:
+            self._current_a = np.array([(self._color0 - self._color1) / 2])
+            self._amplitude_x = 0
+
     @property
     def wave_length(self) -> float:
         return self._b
@@ -138,6 +147,7 @@ class BubbleEffect(LedEffect):
         bubble_pop_speed_ms: int = 3000,
     ):
         assert bubble_index >= 0
+        self._lock = threading.Lock()
         LedEffect.__init__(self, strip)
         num_pixels = self._strip.num_pixels()
         # Calculate x values of the bubble
@@ -162,7 +172,9 @@ class BubbleEffect(LedEffect):
             num_pixels - 1, self._bubble_index + self._bubble_length
         )
         self._bubble_x_values = np.arange(self._bubble_index, max_index, 1)
-        self._x_values = np.array([self._get_x_values(len(bubble_x_values))])
+        self._x_values = np.array(
+            [self._get_x_values(len(self._bubble_x_values))]
+        )
 
     def _get_x_values(self, length: int) -> np.array:
         x_inc = TWO_PI / (length - 1)
@@ -184,6 +196,10 @@ class BubbleEffect(LedEffect):
         self._current_increment += 1
         self._strip.show()
 
+    def reset(self):
+        with self._lock:
+            self._current_increment = 0
+
 
 class BubblingEffect(LedEffect):
     def __init__(
@@ -199,6 +215,7 @@ class BubblingEffect(LedEffect):
         bubble_spawn_prob: float,
     ):
         LedEffect.__init__(self, strip)
+        self._lock = threading.Lock()
         assert len(bubble_lengths) == len(bubble_length_weights)
         assert len(bubble_pop_speeds_ms) == len(bubble_pop_speed_weights)
         assert bubble_spawn_prob > 0 and bubble_spawn_prob <= 1
@@ -236,10 +253,15 @@ class BubblingEffect(LedEffect):
                 bubble_length,
                 bubble_pop_speed_ms,
             )
-            self._current_bubbles[bubble_index] = bubble_effect
+            with self._lock:
+                self._current_bubbles[bubble_index] = bubble_effect
         for bubbles in self._current_bubbles.values():
             bubbles.apply_effect(self._strip)
         self._strip.show()
+
+    def reset(self):
+        with self._lock:
+            self._current_bubbles.clear()
 
 
 class AudioToBrightnessEffect(LedEffect):
@@ -247,6 +269,7 @@ class AudioToBrightnessEffect(LedEffect):
 
     def __init__(self, strip: LedStrip, segment: AudioSegment):
         LedEffect.__init__(self, strip)
+        self._lock = threading.Lock()
         data = np.array(segment.get_array_of_samples())
         data = np.abs(data.astype(np.int32))
         self._normalized_data = (data - np.min(data)) / (
@@ -273,8 +296,13 @@ class AudioToBrightnessEffect(LedEffect):
             1,
         )
         self._strip.brightness = brightness
-        self._current_iteration += self._iteration_increment
-        if self._current_iteration > len(self._normalized_data):
-            self._strip.brightness = self._starting_brightness
-            self._current_iteration -= len(self._normalized_data)
+        with self._lock:
+            self._current_iteration += self._iteration_increment
+            if self._current_iteration > len(self._normalized_data):
+                self._strip.brightness = self._starting_brightness
+                self._current_iteration -= len(self._normalized_data)
         self._strip.show()
+
+    def reset(self):
+        with self._lock:
+            self._current_iteration = 0
