@@ -141,11 +141,10 @@ class AudioPlayer(Player):
             self._condition.notify_all()
 
     def stop(self):
-        with self._lock:
-            Player.stop(self)
-            self._play_audio = False
-            if self._play_buffer:
-                self._play_buffer.stop()
+        Player.stop(self)
+        self._play_audio = False
+        if self._play_buffer:
+            self._play_buffer.stop()
 
 
 class AudioVisualPlayer(Player):
