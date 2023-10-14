@@ -16,8 +16,8 @@ class Handle(abc.ABC):
     def __init__(self, player: "Player"):
         self._player = player
 
-    def __del__(self):
-        self._player.stop()
+    # def __del__(self):
+    #     self._player.stop()
 
     def play_done(self) -> bool:
         return self._player.play_done()
@@ -37,13 +37,11 @@ class Player(abc.ABC):
 
     def __init__(self):
         self._handle = None
-        self._lock = threading.Lock()
         self._play_done = False
         self._condition = threading.Condition()
 
     def play_done(self) -> bool:
-        with self._lock:
-            return self._play_done
+        return self._play_done
 
     @abc.abstractmethod
     def _play(self):
@@ -92,8 +90,7 @@ class LedEffectPlayer(Player):
         self._play_effect = False
 
     def _loop(self):
-        with self._lock:
-            self._play_effect = True
+        self._play_effect = True
         while self._play_effect:
             self._effect.apply_effect()
             busy_sleep(self._effect.frame_speed_ms / 1000.0)
@@ -102,9 +99,8 @@ class LedEffectPlayer(Player):
         self._loop()
 
     def stop(self):
-        with self._lock:
-            Player.stop(self)
-            self._play_effect = False
+        Player.stop(self)
+        self._play_effect = False
 
 
 class AudioPlayer(Player):
@@ -125,16 +121,13 @@ class AudioPlayer(Player):
         )
 
     def _loop(self):
-        with self._lock:
-            self._play_audio = True
+        self._play_audio = True
         while self._play_audio:
-            with self._lock:
-                self._play_buffer = self._create_play_buffer(self._sound * 10)
+            self._play_buffer = self._create_play_buffer(self._sound * 10)
             self._play_buffer.wait_done()
 
     def _play(self):
-        with self._lock:
-            self._play_buffer = self._create_play_buffer(self._sound)
+        self._play_buffer = self._create_play_buffer(self._sound)
         self._play_buffer.wait_done()
         with self._condition:
             self._play_done = True

@@ -35,12 +35,15 @@ class Cauldron:
         ]
         self._current_color_index = 0
         self._current_colors = self._colors[self._current_color_index]
-        strip.fill(self._current_colors[0])
 
         # Initialize bubbling effects players
+        self._current_bubbling_effect = None
+        self._bubbling_handle = None
         self._init_bubbling_effects()
 
         # Initialize explosion effects
+        self._current_explosion_effect = None
+        self._explosion_handle = None
         self._init_explosion_effects()
 
         # Start the common effect
@@ -49,17 +52,19 @@ class Cauldron:
     def __del__(self):
         if self._explosion_handle:
             self._explosion_handle.stop()
-        if self._current_bubbling_handle:
-            self._current_bubbling_handle.stop()
+        if self._bubbling_handle:
+            self._bubbling_handle.stop()
 
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
         segment = segment.set_sample_width(2)
 
-        explosion_effect = led_effect.AudioToBrightnessEffect(
+        self._current_explosion_effect = led_effect.AudioToBrightnessEffect(
             self._strip, segment
         )
-        explosion_effect_player = players.LedEffectPlayer(explosion_effect)
+        explosion_effect_player = players.LedEffectPlayer(
+            self._current_explosion_effect
+        )
         explosion_audio = players.AudioPlayer(segment)
         self._explosion_av = players.AudioVisualPlayer(
             explosion_effect_player, explosion_audio
@@ -92,7 +97,7 @@ class Cauldron:
         self._current_bubbling_effect = self._bubbling_effects[
             self._current_color_index
         ]
-        self._current_bubbling_handle = None
+        self._bubbling_handle = None
 
     def _set_random_colors(self):
         with self._lock:
@@ -107,22 +112,17 @@ class Cauldron:
             self._current_bubbling_effect = self._bubbling_effects[
                 self._current_color_index
             ]
-            self._strip.fill(self._current_colors[0])
         self._start_common_effect()
 
     def _start_common_effect(self):
         with self._lock:
-            if self._current_bubbling_handle is not None:
-                self._current_bubbling_handle.stop()
-
             bubbling_effect = self._bubbling_effects[self._current_color_index]
-            self._current_bubbling_handle = bubbling_effect.loop()
+            self._strip.fill(self._current_colors[0])
+            self._bubbling_handle = bubbling_effect.loop()
 
     def cause_explosion(self):
         """Causing an explosion will change the color and strobe the lights."""
-        with self._lock:
-            if self._explosion_handle is not None:
-                self._explosion_handle.stop()
+        self._current_explosion_effect.reset()
         self._set_random_colors()
         self._explosion_handle = self._explosion_av.play()
 
@@ -159,3 +159,5 @@ cauldron.cause_explosion()
 
 time.sleep(5)
 cauldron.cause_explosion()
+
+del cauldron
