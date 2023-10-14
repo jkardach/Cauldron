@@ -47,34 +47,34 @@ class Player(abc.ABC):
 
     @abc.abstractmethod
     def _play(self):
-        self._play_done = True
-        self._condition.wait_for(self._play_done)
+        with self._condition:
+            self._play_done = True
+            self._condition.notify_all()
 
     @abc.abstractmethod
     def _loop(self):
-        self._play_done = True
-        self._condition.wait_for(self._play_done)
+        with self._condition:
+            self._play_done = True
+            self._condition.notify_all()
 
     def play(self) -> Handle:
         """Runs _play on another thread, returning a Handle to the thread."""
-        with self._lock:
-            self._play_done = False
-            if self._handle:
-                self._handle.stop()
-                self._handle = None
-            threading.Thread(target=self._play).start()
-            self._handle = Handle(self)
-            return self._handle
+        self._play_done = False
+        if self._handle:
+            self._handle.stop()
+            self._handle = None
+        threading.Thread(target=self._play).start()
+        self._handle = Handle(self)
+        return self._handle
 
     def loop(self) -> Handle:
         """Runs _loop on another thread, returning a Handle to the thread."""
-        with self._lock:
-            if self._handle:
-                self._handle.stop()
-                self._handle = None
-            threading.Thread(target=self._loop).start()
-            self._handle = Handle(self)
-            return self._handle
+        if self._handle:
+            self._handle.stop()
+            self._handle = None
+        threading.Thread(target=self._loop).start()
+        self._handle = Handle(self)
+        return self._handle
 
     @abc.abstractmethod
     def stop(self):
@@ -136,8 +136,8 @@ class AudioPlayer(Player):
         with self._lock:
             self._play_buffer = self._create_play_buffer(self._sound)
         self._play_buffer.wait_done()
-        self._play_done = True
         with self._condition:
+            self._play_done = True
             self._condition.notify_all()
 
     def stop(self):
