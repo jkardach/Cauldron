@@ -100,6 +100,7 @@ class Cauldron:
         self._bubbling_handle = None
 
     def _set_random_colors(self):
+        """Selects a new set of colors and applies it to the LedStrip."""
         with self._lock:
             self._current_color_index = choice(
                 [
@@ -115,6 +116,7 @@ class Cauldron:
         self._start_common_effect()
 
     def _start_common_effect(self):
+        """Starts the looping cauldron bubbling effect."""
         with self._lock:
             bubbling_effect = self._bubbling_effects[self._current_color_index]
             self._strip.fill(self._current_colors[0])

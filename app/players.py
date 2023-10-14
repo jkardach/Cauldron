@@ -16,8 +16,8 @@ class Handle(abc.ABC):
     def __init__(self, player: "Player"):
         self._player = player
 
-    # def __del__(self):
-    #     self._player.stop()
+    def __del__(self):
+        self.stop()
 
     def play_done(self) -> bool:
         return self._player.play_done()
