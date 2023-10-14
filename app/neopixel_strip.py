@@ -14,6 +14,8 @@ class NeoPixelStrip(LedStrip):
         self.neopixel = neopixel
 
     def __setitem__(self, indices, value):
+        if isinstance(value, np.ndarray):
+            value = value.astype(np.int16).tolist()
         self.neopixel[indices] = value
 
     def __getitem__(self, indices):
@@ -21,7 +23,7 @@ class NeoPixelStrip(LedStrip):
 
     def fill(self, color: list):
         assert len(color) == _RGB_COLOR_SIZE
-        self.neopixel.fill(np.floor(color).tolist())
+        self.neopixel.fill(color)
 
     def fill_copy(self, pixels: np.array) -> int:
         assert len(pixels) == len(self.neopixel)

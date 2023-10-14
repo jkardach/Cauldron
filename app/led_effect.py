@@ -153,8 +153,8 @@ class BubbleEffect(LedEffect):
         # Calculate x values of the bubble
         assert bubble_index < num_pixels
         self._bubble_index = bubble_index - int(bubble_length / 2)
-        self._base_color = np.array([base_color])
-        self._bubble_color = np.array([bubble_color])
+        self._base_color = np.array(base_color)
+        self._bubble_color = np.array(bubble_color)
         self._bubble_pop_speed_ms = bubble_pop_speed_ms
         self._bubble_length = bubble_length
         # Calculate number of frames it will take for the animation to complete
@@ -171,7 +171,10 @@ class BubbleEffect(LedEffect):
         max_index = min(
             num_pixels - 1, self._bubble_index + self._bubble_length
         )
-        self._bubble_x_values = np.arange(self._bubble_index, max_index, 1)
+        self._bubble_x_values = np.array(
+            np.arange(self._bubble_index, max_index, 1)
+        )
+        self._bubble_x_range = (self._bubble_index, max_index)
         self._x_values = np.array(
             [self._get_x_values(len(self._bubble_x_values))]
         )
@@ -188,11 +191,10 @@ class BubbleEffect(LedEffect):
         ]
         amplitude = amp_fact * self._bubble_amplitude
         colors = (
-            np.array((np.cos(self._x_values + np.pi) + 1).T * amplitude)
-            + self._base_color
-        )
+            np.cos(self._x_values + np.pi) + 1
+        ).T * amplitude + self._base_color
         colors = np.clip(colors, 0, 255)
-        self._strip[self._bubble_x_values] = colors
+        self._strip[self._bubble_x_range[0] : self._bubble_x_range[1]] = colors
         self._current_increment += 1
         self._strip.show()
 

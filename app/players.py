@@ -60,7 +60,8 @@ class Player(abc.ABC):
         with self._lock:
             self._play_done = False
             if self._handle:
-                return self._handle
+                self._handle.stop()
+                self._handle = None
             threading.Thread(target=self._play).start()
             self._handle = Handle(self)
             return self._handle
@@ -69,15 +70,17 @@ class Player(abc.ABC):
         """Runs _loop on another thread, returning a Handle to the thread."""
         with self._lock:
             if self._handle:
-                return self._handle
+                self._handle.stop()
+                self._handle = None
             threading.Thread(target=self._loop).start()
             self._handle = Handle(self)
             return self._handle
 
     @abc.abstractmethod
     def stop(self):
-        self._play_done = True
-        self._condition.notify_all()
+        with self._condition:
+            self._play_done = True
+            self._condition.notify_all()
 
 
 class LedEffectPlayer(Player):
@@ -134,7 +137,8 @@ class AudioPlayer(Player):
             self._play_buffer = self._create_play_buffer(self._sound)
         self._play_buffer.wait_done()
         self._play_done = True
-        self._condition.notify_all()
+        with self._condition:
+            self._condition.notify_all()
 
     def stop(self):
         with self._lock:
@@ -157,6 +161,11 @@ class AudioVisualPlayer(Player):
         self._effect_handle = None
         self._audio_handle = None
 
+    def _predicate(self):
+        return (
+            self._audio_handle.play_done() and self._effect_handle.play_done()
+        )
+
     def _loop(self):
         with self._condition:
             self._audio_handle = self._audio_player.loop()
@@ -167,10 +176,7 @@ class AudioVisualPlayer(Player):
         with self._condition:
             self._audio_handle = self._audio_player.play()
             self._effect_handle = self._effect_player.play()
-            self._condition.wait_for(
-                self._audio_handle.play_done()
-                and self._effect_handle.play_done()
-            )
+            self._condition.wait_for(self._predicate)
 
     def stop(self):
         if self._handle is None:

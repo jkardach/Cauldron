@@ -35,6 +35,7 @@ class Cauldron:
         ]
         self._current_color_index = 0
         self._current_colors = self._colors[self._current_color_index]
+        strip.fill(self._current_colors[0])
 
         # Initialize bubbling effects players
         self._init_bubbling_effects()
@@ -45,6 +46,12 @@ class Cauldron:
         # Start the common effect
         self._start_common_effect()
 
+    def __del__(self):
+        if self._explosion_handle:
+            self._explosion_handle.stop()
+        if self._current_bubbling_handle:
+            self._current_bubbling_handle.stop()
+
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
         segment = segment.set_sample_width(2)
@@ -52,9 +59,10 @@ class Cauldron:
         explosion_effect = led_effect.AudioToBrightnessEffect(
             self._strip, segment
         )
+        explosion_effect_player = players.LedEffectPlayer(explosion_effect)
         explosion_audio = players.AudioPlayer(segment)
         self._explosion_av = players.AudioVisualPlayer(
-            explosion_effect, explosion_audio
+            explosion_effect_player, explosion_audio
         )
         self._explosion_handle = None
 
@@ -72,12 +80,13 @@ class Cauldron:
                 MAX_BUBBLES,
                 BUBBLE_SPAWN_PROB,
             )
+            bubbling_effect_player = players.LedEffectPlayer(bubbling_effect)
             segment = AudioSegment.from_file(BUBBLING_SOUND)
             segment.frame_rate = int(segment.frame_rate / 4)
-            bubbling_player = players.AudioPlayer(segment)
+            bubbling_audio_player = players.AudioPlayer(segment)
 
             bubbling_av = players.AudioVisualPlayer(
-                bubbling_effect, bubbling_player
+                bubbling_effect_player, bubbling_audio_player
             )
             self._bubbling_effects.append(bubbling_av)
         self._current_bubbling_effect = self._bubbling_effects[
@@ -99,6 +108,7 @@ class Cauldron:
                 self._current_color_index
             ]
             self._strip.fill(self._current_colors[0])
+        self._start_common_effect()
 
     def _start_common_effect(self):
         with self._lock:
@@ -113,9 +123,24 @@ class Cauldron:
         with self._lock:
             if self._explosion_handle is not None:
                 self._explosion_handle.stop()
-            self._explosion_handle = self._explosion_av.play()
+        self._set_random_colors()
+        self._explosion_handle = self._explosion_av.play()
 
 
+import board
+import led_effect
+import led_strip
+import neopixel
+from neopixel_strip import NeoPixelStrip
+import players
+from pydub import AudioSegment
+from random import choice
+import threading
+import time
+
+PIXEL_ORDER = neopixel.RGB
+PIXEL_PIN = board.D18
+NUM_PIXELS = 50
 device = neopixel.NeoPixel(
     PIXEL_PIN,
     NUM_PIXELS,
