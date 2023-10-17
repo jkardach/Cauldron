@@ -168,13 +168,13 @@ class BubbleEffect(LedEffect):
         # Calculate bubble max amplitude
         self._bubble_amplitude = self._bubble_color - self._base_color
 
-        max_index = min(
+        self._max_index = min(
             num_pixels - 1, self._bubble_index + self._bubble_length
         )
         self._bubble_x_values = np.array(
-            np.arange(self._bubble_index, max_index, 1)
+            np.arange(self._bubble_index, self._max_index, 1)
         )
-        self._bubble_x_range = (self._bubble_index, max_index)
+        self._bubble_x_range = (self._bubble_index, self._max_index)
         self._x_values = np.array(
             [self._get_x_values(len(self._bubble_x_values))]
         )
@@ -182,6 +182,9 @@ class BubbleEffect(LedEffect):
     def _get_x_values(self, length: int) -> np.array:
         x_inc = TWO_PI / (length - 1)
         return np.arange(0, TWO_PI + x_inc, x_inc)
+
+    def bubble_index_range(self):
+        return (self._bubble_index, self._max_index)
 
     def apply_effect(self):
         """Applies a bubble to the LedStrip."""
@@ -230,21 +233,30 @@ class BubblingEffect(LedEffect):
         self._bubble_pop_speeds = bubble_pop_speeds_ms
         self._bubble_pop_speed_weights = bubble_pop_speed_weights
         self._current_bubbles: dict[int, BubbleEffect] = {}
+        self._num_pixels = self._strip.num_pixels()
+        self._bubble_indices = np.ones(self._num_pixels)
 
     def _spawn_bubble(self):
         return random.random() <= self._bubble_spawn_prob
 
+    def _bubble_exists(self, min_index: int, max_index: int) -> bool:
+        return not np.all(self._bubble_indices[min_index:max_index])
+
     def apply_effect(self):
         """Applies a bubble to the LedStrip."""
         spawn_bubble = self._spawn_bubble()
-        num_pixels = self._strip.num_pixels()
         if spawn_bubble and len(self._current_bubbles) < self._max_bubbles:
-            bubble_index = random.randint(0, num_pixels - 1)
-            while bubble_index in self._current_bubbles:
-                bubble_index = random.randint(0, num_pixels - 1)
+            bubble_index = random.randint(0, self._num_pixels - 1)
             bubble_length = choice(
                 self._bubble_lengths, 1, p=self._bubble_length_weights
             )[0]
+            while self._bubble_exists(
+                bubble_index, bubble_index + bubble_length - 1
+            ):
+                bubble_index = random.randint(0, self._num_pixels - 1)
+                bubble_length = choice(
+                    self._bubble_lengths, 1, p=self._bubble_length_weights
+                )[0]
             bubble_pop_speed_ms = choice(
                 self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
             )[0]
@@ -256,6 +268,8 @@ class BubblingEffect(LedEffect):
                 bubble_length,
                 bubble_pop_speed_ms,
             )
+            bubble_range = bubble_effect.bubble_index_range()
+            self._bubble_indices[bubble_range[0] : bubble_range[1]] = 0
             with self._lock:
                 self._current_bubbles[bubble_index] = bubble_effect
         for bubbles in self._current_bubbles.values():

@@ -118,12 +118,16 @@ class Cauldron:
     def _start_common_effect(self):
         """Starts the looping cauldron bubbling effect."""
         with self._lock:
+            if self._bubbling_handle is not None:
+                self._bubbling_handle.stop()
             bubbling_effect = self._bubbling_effects[self._current_color_index]
             self._strip.fill(self._current_colors[0])
             self._bubbling_handle = bubbling_effect.loop()
 
     def cause_explosion(self):
         """Causing an explosion will change the color and strobe the lights."""
+        if self._explosion_handle is not None:
+            self._explosion_handle.stop()
         self._current_explosion_effect.reset()
         self._set_random_colors()
         self._explosion_handle = self._explosion_av.play()
@@ -140,8 +144,11 @@ from random import choice
 import threading
 import time
 
+import neopixel
+import board
+
 PIXEL_ORDER = neopixel.RGB
-PIXEL_PIN = board.D18
+PIXEL_PIN = board.D12
 NUM_PIXELS = 50
 device = neopixel.NeoPixel(
     PIXEL_PIN,
