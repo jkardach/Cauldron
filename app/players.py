@@ -8,6 +8,13 @@ from pydub import AudioSegment
 import simpleaudio as sa
 import threading
 import time
+from typing import Callable
+
+
+def busy_sleep(seconds_to_sleep):
+    start = time.time()
+    while time.time() < start + seconds_to_sleep:
+        pass
 
 
 class Handle(abc.ABC):
@@ -17,19 +24,24 @@ class Handle(abc.ABC):
         self._player = player
 
     def __del__(self):
-        self.stop()
+        self.stop_wait()
 
-    def play_done(self) -> bool:
-        return self._player.play_done()
+    def is_playing(self) -> bool:
+        """Returns true if the handled player is playing."""
+        return self._player.is_playing()
+
+    def wait_done(self):
+        """Waits for the handled player to finish playing."""
+        self._player.wait_done()
 
     def stop(self):
+        """Stops the handled player if it is playing."""
         self._player.stop()
 
-
-def busy_sleep(seconds_to_sleep):
-    start = time.time()
-    while time.time() < start + seconds_to_sleep:
-        pass
+    def stop_wait(self):
+        """Stops the handled player and waits until finished."""
+        self.stop()
+        self.wait_done()
 
 
 class Player(abc.ABC):
@@ -37,48 +49,78 @@ class Player(abc.ABC):
 
     def __init__(self):
         self._handle = None
-        self._play_done = False
+        self._is_playing = False
+        self._thread_lock = threading.Lock()
+        self._handle_lock = threading.Lock()
         self._condition = threading.Condition()
+        self._thread = None
 
-    def play_done(self) -> bool:
-        return self._play_done
+    def __del__(self):
+        self.stop_wait()
+
+    def is_playing(self):
+        """Returns True if the player is currently playing."""
+        with self._thread_lock:
+            return self._is_playing
+
+    def wait_done(self):
+        """Waits for the running thread to finish executing."""
+        with self._thread_lock:
+            if self._thread is not None:
+                self._thread.join()
+                self._thread = None
+
+    def _create_thread(self, thread_func: Callable):
+        """Runs _play on another thread, returning a Handle to the thread."""
+        with self._handle_lock:
+            # Destroy the running thread if it exists
+            if self._handle is not None:
+                self._handle = None
+            # Create a new thread for playing and create the handle
+        with self._thread_lock:
+            self._is_playing = True
+            self._thread = threading.Thread(target=thread_func)
+            self._thread.start()
+            with self._handle_lock:
+                self._handle = Handle(self)
+        return self._handle
+
+    def _predicate(self):
+        """Returns True when the player is done/should stop playing."""
+        return not self.is_playing()
 
     @abc.abstractmethod
     def _play(self):
+        """Play function that runs on another thread."""
         with self._condition:
-            self._play_done = True
-            self._condition.notify_all()
+            self._condition.wait_for(self._predicate)
 
     @abc.abstractmethod
     def _loop(self):
+        """Loop function that runs on another thread."""
         with self._condition:
-            self._play_done = True
-            self._condition.notify_all()
+            self._condition.wait_for(self._predicate)
 
     def play(self) -> Handle:
         """Runs _play on another thread, returning a Handle to the thread."""
-        self._play_done = False
-        if self._handle:
-            self._handle.stop()
-            self._handle = None
-        threading.Thread(target=self._play).start()
-        self._handle = Handle(self)
-        return self._handle
+        return self._create_thread(self._play)
 
     def loop(self) -> Handle:
         """Runs _loop on another thread, returning a Handle to the thread."""
-        if self._handle:
-            self._handle.stop()
-            self._handle = None
-        threading.Thread(target=self._loop).start()
-        self._handle = Handle(self)
-        return self._handle
+        return self._create_thread(self._loop)
 
     @abc.abstractmethod
     def stop(self):
+        """Stop playing/looping."""
         with self._condition:
-            self._play_done = True
+            with self._thread_lock:
+                self._is_playing = False
             self._condition.notify_all()
+
+    def stop_wait(self):
+        """Stops playing and waits until handle is destroyed."""
+        self.stop()
+        self.wait_done()
 
 
 class LedEffectPlayer(Player):
@@ -87,20 +129,34 @@ class LedEffectPlayer(Player):
     def __init__(self, effect: LedEffect):
         Player.__init__(self)
         self._effect = effect
-        self._play_effect = False
+        self._play_time_s = None
 
     def _loop(self):
-        self._play_effect = True
-        while self._play_effect:
+        """Loop thread function to loop LedEffect."""
+        while self._is_playing:
             self._effect.apply_effect()
             busy_sleep(self._effect.frame_speed_ms / 1000.0)
 
     def _play(self):
-        self._loop()
+        """Play thread function to play LedEffect."""
+        end_time = time.time() + self._play_time_s
+        while self._is_playing and time.time() < end_time:
+            self._effect.apply_effect()
+            busy_sleep(self._effect.frame_speed_ms / 1000.0)
+
+    def play_for(self, time_s: float = 5.0) -> Handle:
+        """Plays the LedEffect for time_s seconds."""
+        assert time_s > 0
+        self._play_time_s = time_s
+        return Player.play(self)
+
+    def play(self):
+        """Plays the LedEffect for 5 seconds."""
+        return self.play_for()
 
     def stop(self):
+        """Stops the LedEffect."""
         Player.stop(self)
-        self._play_effect = False
 
 
 class AudioPlayer(Player):
@@ -110,9 +166,10 @@ class AudioPlayer(Player):
         Player.__init__(self)
         self._sound = seg
         self._play_buffer = None
-        self._play_audio = False
+        self._duration_seconds = seg.duration_seconds
 
     def _create_play_buffer(self, seg) -> sa.PlayObject:
+        """Creates an audio buffer which can be played."""
         return sa.play_buffer(
             seg.raw_data,
             num_channels=seg.channels,
@@ -121,23 +178,28 @@ class AudioPlayer(Player):
         )
 
     def _loop(self):
-        self._play_audio = True
-        while self._play_audio:
+        """Loops the audio segment until explicilty stopped."""
+        while self._is_playing:
             self._play_buffer = self._create_play_buffer(self._sound * 10)
             self._play_buffer.wait_done()
 
     def _play(self):
+        """Plays the audio segment."""
         self._play_buffer = self._create_play_buffer(self._sound)
         self._play_buffer.wait_done()
         with self._condition:
-            self._play_done = True
+            self._is_playing = False
             self._condition.notify_all()
 
+    def duration_seconds(self) -> float:
+        """Returns the duration of the audio segment in seconds."""
+        return self._duration_seconds
+
     def stop(self):
-        Player.stop(self)
-        self._play_audio = False
+        """Stops the player if it is currently playing."""
         if self._play_buffer:
             self._play_buffer.stop()
+        Player.stop(self)
 
 
 class AudioVisualPlayer(Player):
@@ -154,28 +216,42 @@ class AudioVisualPlayer(Player):
         self._audio_handle = None
 
     def _predicate(self):
-        return (
-            self._audio_handle.play_done() and self._effect_handle.play_done()
+        """Returns True if both audio and visual players are done playing."""
+        return not (
+            self._audio_handle.is_playing() or self._effect_handle.is_playing()
         )
 
     def _loop(self):
+        """Loops the audio and visual players."""
         with self._condition:
             self._audio_handle = self._audio_player.loop()
             self._effect_handle = self._effect_player.loop()
-            self._condition.wait()
+            self._condition.wait_for(self._predicate)
 
     def _play(self):
+        """Plays the audio and visual players once."""
         with self._condition:
             self._audio_handle = self._audio_player.play()
-            self._effect_handle = self._effect_player.play()
+            self._effect_handle = self._effect_player.play_for(
+                self._audio_player.duration_seconds()
+            )
             self._condition.wait_for(self._predicate)
 
     def stop(self):
+        """Stops the player if it is currently playing."""
         if self._handle is None:
             return None
-        self._effect_handle.stop()
-        self._audio_handle.stop()
-        Player.stop(self)
+        if self._effect_handle is not None:
+            self._effect_handle.stop()
+            self._effect_handle.wait_done()
+
+        if self._audio_handle is not None:
+            self._audio_handle.stop()
+            self._audio_handle.wait_done()
+
+        Player.stop_wait(self)
+        self._effect_handle = None
+        self._audio_handle = None
 
 
 class MockAudioVisualPlayer(AudioVisualPlayer):
@@ -189,6 +265,11 @@ class MockAudioVisualPlayer(AudioVisualPlayer):
 
     def loop(self):
         self._loop()
+
+
+class MockEffectHandle(Handle):
+    def __del__(self):
+        return None
 
 
 class MockEffectPlayer(Player):
@@ -256,7 +337,7 @@ class MockEffectPlayer(Player):
             interval=self._effect.frame_speed_ms,
         )
         plt.show()
-        return Handle(self)
+        return MockEffectHandle(self)
 
     def _play(self):
         self._loop()

@@ -21,7 +21,7 @@ def test_mock_sine_wave():
         b=5,
         oscillation_speed_ms=1000,
     )
-    player = MockEffectPlayer(sine_wave)
+    player = MockEffectPlayer(mock_strip, sine_wave)
     handle = player.play()
     try:
         while True:

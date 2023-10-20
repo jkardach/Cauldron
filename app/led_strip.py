@@ -7,6 +7,9 @@ _RGB_COLOR_SIZE = 3
 
 
 class LedStrip(abc.ABC):
+    def __del__(self):
+        self.fill((0, 0, 0))
+
     @abc.abstractmethod
     def __setitem__(self, indices, value):
         return None

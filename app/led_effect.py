@@ -24,6 +24,17 @@ class LedEffect(abc.ABC):
         return None
 
 
+class MockEffect(LedEffect):
+    def __init__(self, strip: LedStrip):
+        LedEffect.__init__(self, strip)
+
+    def apply_effect(self):
+        return None
+
+    def reset(self):
+        return None
+
+
 class SineWaveEffect(LedEffect):
     """Applies a modifyable sine wave effect onto an LedStrip."""
 

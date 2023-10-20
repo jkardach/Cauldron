@@ -38,12 +38,12 @@ class Cauldron:
 
         # Initialize bubbling effects players
         self._current_bubbling_effect = None
-        self._bubbling_handle = None
+        self._bubbling_handle: players.Handle = None
         self._init_bubbling_effects()
 
         # Initialize explosion effects
         self._current_explosion_effect = None
-        self._explosion_handle = None
+        self._explosion_handle: players.Handle = None
         self._init_explosion_effects()
 
         # Start the common effect
@@ -51,9 +51,9 @@ class Cauldron:
 
     def __del__(self):
         if self._explosion_handle:
-            self._explosion_handle.stop()
+            self._explosion_handle.stop_wait()
         if self._bubbling_handle:
-            self._bubbling_handle.stop()
+            self._bubbling_handle.stop_wait()
 
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
@@ -117,9 +117,9 @@ class Cauldron:
 
     def _start_common_effect(self):
         """Starts the looping cauldron bubbling effect."""
+        if self._bubbling_handle is not None:
+            self._bubbling_handle.stop_wait()
         with self._lock:
-            if self._bubbling_handle is not None:
-                self._bubbling_handle.stop()
             bubbling_effect = self._bubbling_effects[self._current_color_index]
             self._strip.fill(self._current_colors[0])
             self._bubbling_handle = bubbling_effect.loop()
@@ -127,7 +127,7 @@ class Cauldron:
     def cause_explosion(self):
         """Causing an explosion will change the color and strobe the lights."""
         if self._explosion_handle is not None:
-            self._explosion_handle.stop()
+            self._explosion_handle.stop_wait()
         self._current_explosion_effect.reset()
         self._set_random_colors()
         self._explosion_handle = self._explosion_av.play()
@@ -146,6 +146,7 @@ import time
 
 import neopixel
 import board
+from neopixel_strip import NeoPixelStrip
 
 PIXEL_ORDER = neopixel.RGB
 PIXEL_PIN = board.D12
@@ -158,15 +159,17 @@ device = neopixel.NeoPixel(
     brightness=0.1,
 )
 strip = NeoPixelStrip(device)
-cauldron = Cauldron(strip)
 
-time.sleep(5)
-cauldron.cause_explosion()
 
-time.sleep(5)
-cauldron.cause_explosion()
+def run_cauldron():
+    cauldron = Cauldron(strip)
 
-time.sleep(5)
-cauldron.cause_explosion()
+    for i in range(1):
+        time.sleep(5)
+        print("Causing explosion")
+        cauldron.cause_explosion()
 
-del cauldron
+    time.sleep(1)
+
+
+run_cauldron()

@@ -95,6 +95,6 @@ def test_bubbling_effect():
         handle.stop()
 
 
-test_rpi_neopixel_sine_wave()
+# test_rpi_neopixel_sine_wave()
 # play_a2b_effect()
-# test_bubbling_effect()
+test_bubbling_effect()
