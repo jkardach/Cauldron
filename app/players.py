@@ -22,8 +22,13 @@ class Handle(abc.ABC):
 
     def __init__(self, player: "Player"):
         self._player = player
+        self._lock = threading.Lock()
+        self._done_handling = False
 
     def __del__(self):
+        with self._lock:
+            if self._done_handling:
+                return
         self.stop_wait()
 
     def is_playing(self) -> bool:
@@ -36,12 +41,15 @@ class Handle(abc.ABC):
 
     def stop(self):
         """Stops the handled player if it is playing."""
-        self._player.stop()
+        with self._lock:
+            self._player.stop()
+            self._done_handling = True
 
     def stop_wait(self):
         """Stops the handled player and waits until finished."""
-        self.stop()
-        self.wait_done()
+        with self._lock:
+            self._player.stop(True)
+            self._done_handling = True
 
 
 class Player(abc.ABC):
@@ -70,19 +78,19 @@ class Player(abc.ABC):
                 self._thread.join()
                 self._thread = None
 
-    def _create_thread(self, thread_func: Callable):
+    def _create_thread(self, thread_func: Callable) -> Handle:
         """Runs _play on another thread, returning a Handle to the thread."""
         with self._handle_lock:
             # Destroy the running thread if it exists
             if self._handle is not None:
-                self._handle = None
-            # Create a new thread for playing and create the handle
+                self._handle.stop_wait()
+        # Create a new thread for playing and create the handle
         with self._thread_lock:
             self._is_playing = True
             self._thread = threading.Thread(target=thread_func)
             self._thread.start()
-            with self._handle_lock:
-                self._handle = Handle(self)
+        with self._handle_lock:
+            self._handle = Handle(self)
         return self._handle
 
     def _predicate(self):
@@ -110,17 +118,25 @@ class Player(abc.ABC):
         return self._create_thread(self._loop)
 
     @abc.abstractmethod
-    def stop(self):
+    def stop(self, wait: bool = False):
         """Stop playing/looping."""
+        if not self.is_playing():
+            return
+        # Notify the thread to stop playing
+        with self._thread_lock:
+            self._is_playing = False
+        # Notify the condition to check predicate
         with self._condition:
-            with self._thread_lock:
-                self._is_playing = False
             self._condition.notify_all()
+        # If wait is specified, wait for thread to destroy
+        if wait:
+            with self._thread_lock:
+                if self._thread is not None:
+                    self._thread.join()
+                    self._thread = None
 
     def stop_wait(self):
-        """Stops playing and waits until handle is destroyed."""
-        self.stop()
-        self.wait_done()
+        self.stop(True)
 
 
 class LedEffectPlayer(Player):
@@ -154,9 +170,9 @@ class LedEffectPlayer(Player):
         """Plays the LedEffect for 5 seconds."""
         return self.play_for()
 
-    def stop(self):
+    def stop(self, wait: bool = False):
         """Stops the LedEffect."""
-        Player.stop(self)
+        Player.stop(self, wait)
 
 
 class AudioPlayer(Player):
@@ -195,11 +211,11 @@ class AudioPlayer(Player):
         """Returns the duration of the audio segment in seconds."""
         return self._duration_seconds
 
-    def stop(self):
+    def stop(self, wait: bool = False):
         """Stops the player if it is currently playing."""
         if self._play_buffer:
             self._play_buffer.stop()
-        Player.stop(self)
+        Player.stop(self, wait)
 
 
 class AudioVisualPlayer(Player):
@@ -237,19 +253,17 @@ class AudioVisualPlayer(Player):
             )
             self._condition.wait_for(self._predicate)
 
-    def stop(self):
+    def stop(self, wait: bool = False):
         """Stops the player if it is currently playing."""
         if self._handle is None:
             return None
         if self._effect_handle is not None:
-            self._effect_handle.stop()
-            self._effect_handle.wait_done()
+            self._effect_handle.stop_wait()
 
         if self._audio_handle is not None:
-            self._audio_handle.stop()
-            self._audio_handle.wait_done()
+            self._audio_handle.stop_wait()
 
-        Player.stop_wait(self)
+        Player.stop(self, wait)
         self._effect_handle = None
         self._audio_handle = None
 

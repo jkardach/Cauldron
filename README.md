@@ -57,3 +57,14 @@ sudo python3 sample/led_effect.py
 The code currently follows the above design. Objects with similar colors all share the same base object type. The inheritance-heavy design allows us to define common behavior in base classes and to enable the use of mock objects. For example:
 
 MockStrip uses a (NUM_PIXELS x 3) numpy array to represent an RGB LED strip. We can use the MockStrip anywhere an LedStrip is expected. This allows us to test LedEffects, which apply an effect on an LedStrip, without needing a physical LED strip.
+
+
+## TODO
+
+### In order of importance
+1. Implement a control for the cauldron to trigger explosions
+2. Create an AudioEffect class which wraps AudioSegment. This will allow us to test AudioPlayers
+3. Create a test suite that can catch threading issues in the players module
+4. Create a multithreaded MockEffectPlayer that can be run from a non-main thread
+5. Add more colors to the Cauldron
+6. Optionally randomize the cauldron bubble colors, instead of having fixed combinations
