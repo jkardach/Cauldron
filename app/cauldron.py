@@ -1,17 +1,11 @@
-import board
+import abc
 import led_effect
 import led_strip
-import neopixel
-from neopixel_strip import NeoPixelStrip
 import players
 from pydub import AudioSegment
 from random import choice
 import threading
-import time
 
-PIXEL_ORDER = neopixel.RGB
-PIXEL_PIN = board.D18
-NUM_PIXELS = 50
 
 BUBBLE_LENGTHS = [7, 9, 11]
 BUBBLE_POP_SPEEDS = [3000, 4000, 5000]
@@ -22,7 +16,18 @@ EXPLOSION_SOUND = "app/files/audio/poof.wav"
 BUBBLING_SOUND = "app/files/audio/bubbles.wav"
 
 
-class Cauldron:
+class ICauldron(abc.ABC):
+    """Interface to control the Cauldron."""
+
+    @abc.abstractmethod
+    def cause_explosion(self):
+        """Causes the Cauldron to explode, changing the color."""
+        return None
+
+
+class Cauldron(ICauldron):
+    """Cauldron implementation."""
+
     def __init__(self, strip: led_strip.LedStrip):
         self._lock = threading.Lock()
         self._strip = strip

@@ -62,6 +62,13 @@ MockStrip uses a (NUM_PIXELS x 3) numpy array to represent an RGB LED strip. We 
 ## TODO
 
 ### In order of importance
+1. Establish interprocess communication layer to control Cauldron
+    a. Should have a configuration and interface.  
+    b. Interface should be decypherable across processes.  
+    c. This interface needs to be generic enough to allow changing the client without needing to change Cauldron implementation.  
+    d. Must support multiple clients for different forms of control (Web interface, Bluetooth, Sensors)  
+    e. Needs to accept configuration object/file to configure the process connections. This file should also contain the interface that can be used to communicate with the cauldron
+1. Create configuration file to initialize the Cauldron process, specifying GPIO, sound files, etc...
 1. Implement a control for the cauldron to trigger explosions
 2. Create an AudioEffect class which wraps AudioSegment. This will allow us to test AudioPlayers
 3. Create a test suite that can catch threading issues in the players module
