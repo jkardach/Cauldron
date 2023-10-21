@@ -244,9 +244,14 @@ class BubblingEffect(LedEffect):
         self._bubble_length_weights = bubble_length_weights
         self._bubble_pop_speeds = bubble_pop_speeds_ms
         self._bubble_pop_speed_weights = bubble_pop_speed_weights
+        # Current bubbles keeps track of all existing bubles
         self._current_bubbles: dict[int, BubbleEffect] = {}
         self._num_pixels = self._strip.num_pixels()
+        # Bubble indices creates a mask array showing which indices do not
+        # currently have a bubble spawned
         self._bubble_indices = np.ones(self._num_pixels)
+        # Max bubbles reached tells us if it is not possible to spawn more
+        # bubbles
         self._max_bubbles_reached = False
 
     def _spawn_bubble(self):
@@ -260,6 +265,7 @@ class BubblingEffect(LedEffect):
 
     def apply_effect(self):
         """Applies a bubble to the LedStrip."""
+        # Check if it is possible to create another bubble
         if not self._max_bubbles_reached:
             longest_possible_bubble = max(
                 sum(1 for _ in g) for _, g in groupby(self._bubble_indices)
@@ -269,8 +275,11 @@ class BubblingEffect(LedEffect):
                 and len(self._current_bubbles) >= self._max_bubbles
             ):
                 self._max_bubbles_reached = True
+        # Check if we should spawn a bubble this frame
         spawn_bubble = self._spawn_bubble()
         if spawn_bubble and not self._max_bubbles_reached:
+            # Get random bubble lengths and indices until we get a new bubble
+            # that does not exist
             bubble_length = choice(
                 self._bubble_lengths, 1, p=self._bubble_length_weights
             )[0]
@@ -282,6 +291,7 @@ class BubblingEffect(LedEffect):
                 bubble_length = choice(
                     self._bubble_lengths, 1, p=self._bubble_length_weights
                 )[0]
+            # Create a new bubble
             bubble_pop_speed_ms = choice(
                 self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
             )[0]
@@ -297,6 +307,7 @@ class BubblingEffect(LedEffect):
             self._bubble_indices[bubble_range[0] : bubble_range[1]] = 0
             with self._lock:
                 self._current_bubbles[bubble_index] = bubble_effect
+        # Apply all of the bubble effects to the LedStrip
         for bubbles in self._current_bubbles.values():
             bubbles.apply_effect()
         self._strip.show()
