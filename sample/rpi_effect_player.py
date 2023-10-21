@@ -68,8 +68,7 @@ def play_a2b_effect():
 
 
 def test_bubbling_effect():
-    color0 = [255, 179, 0]
-    color1 = [255, 222, 0]
+    colors = ([32, 139, 25], [215, 232, 23])
     bubble_lengths = [7, 9, 11]
     bubble_pop_speeds = [3000, 4000, 5000]
     weights = [0.5, 0.25, 0.25]
@@ -81,13 +80,13 @@ def test_bubbling_effect():
         pixel_order=PIXEL_ORDER,
         brightness=0.1,
     )
-    device.fill(color0)
+    device.fill(colors[0])
     strip = NeoPixelStrip(device)
     bubble_effect = test_effects.create_bubbling_effect(
-        strip, color0, color1, bubble_lengths, bubble_pop_speeds, weights
+        strip, colors[0], colors[1], bubble_lengths, bubble_pop_speeds, weights
     )
     player = players.LedEffectPlayer(bubble_effect)
-    handle = player.play()
+    handle = player.loop()
     try:
         while True:
             time.sleep(1)

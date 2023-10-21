@@ -27,4 +27,11 @@ def test_explosions():
         time.sleep(5)
 
 
+def test_default():
+    cauldron = Cauldron(strip)
+
+    time.sleep(60)
+
+
 # test_explosions()
+test_default()

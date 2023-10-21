@@ -266,7 +266,7 @@ class BubblingEffect(LedEffect):
             )
             if (
                 longest_possible_bubble < np.min(self._bubble_lengths)
-                or len(self._current_bubbles) < self._max_bubbles
+                and len(self._current_bubbles) >= self._max_bubbles
             ):
                 self._max_bubbles_reached = True
         spawn_bubble = self._spawn_bubble()
