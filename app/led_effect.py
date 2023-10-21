@@ -1,4 +1,5 @@
 import abc
+from itertools import groupby
 from led_strip import LedStrip
 import numpy as np
 from numpy.random import choice
@@ -163,7 +164,7 @@ class BubbleEffect(LedEffect):
         num_pixels = self._strip.num_pixels()
         # Calculate x values of the bubble
         assert bubble_index < num_pixels
-        self._bubble_index = bubble_index - int(bubble_length / 2)
+        self._bubble_index = bubble_index
         self._base_color = np.array(base_color)
         self._bubble_color = np.array(bubble_color)
         self._bubble_pop_speed_ms = bubble_pop_speed_ms
@@ -246,21 +247,34 @@ class BubblingEffect(LedEffect):
         self._current_bubbles: dict[int, BubbleEffect] = {}
         self._num_pixels = self._strip.num_pixels()
         self._bubble_indices = np.ones(self._num_pixels)
+        self._max_bubbles_reached = False
 
     def _spawn_bubble(self):
-        return random.random() <= self._bubble_spawn_prob
+        return (
+            random.random() <= self._bubble_spawn_prob
+            and not self._max_bubbles_reached
+        )
 
     def _bubble_exists(self, min_index: int, max_index: int) -> bool:
         return not np.all(self._bubble_indices[min_index:max_index])
 
     def apply_effect(self):
         """Applies a bubble to the LedStrip."""
+        if not self._max_bubbles_reached:
+            longest_possible_bubble = max(
+                sum(1 for _ in g) for _, g in groupby(self._bubble_indices)
+            )
+            if (
+                longest_possible_bubble < np.min(self._bubble_lengths)
+                or len(self._current_bubbles) < self._max_bubbles
+            ):
+                self._max_bubbles_reached = True
         spawn_bubble = self._spawn_bubble()
-        if spawn_bubble and len(self._current_bubbles) < self._max_bubbles:
-            bubble_index = random.randint(0, self._num_pixels - 1)
+        if spawn_bubble and not self._max_bubbles_reached:
             bubble_length = choice(
                 self._bubble_lengths, 1, p=self._bubble_length_weights
             )[0]
+            bubble_index = random.randint(0, self._num_pixels - 1)
             while self._bubble_exists(
                 bubble_index, bubble_index + bubble_length - 1
             ):
