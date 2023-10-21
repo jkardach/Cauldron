@@ -12,7 +12,7 @@ device = neopixel.NeoPixel(
     NUM_PIXELS,
     auto_write=True,
     pixel_order=PIXEL_ORDER,
-    brightness=0.1,
+    brightness=0.2,
 )
 strip = NeoPixelStrip(device)
 
@@ -27,4 +27,4 @@ def test_explosions():
         time.sleep(5)
 
 
-test_explosions()
+# test_explosions()
