@@ -54,7 +54,7 @@ class MockStrip(LedStrip):
         self, num_pixels: int, show_callback: Callable[[np.array], None] = None
     ):
         self._num_pixels = num_pixels
-        self._pixels = np.zeros((num_pixels, 3))
+        self._pixels = np.zeros((num_pixels, 3)).astype("u4")
         self._show_callback = show_callback
         self._brightness = 1.0
 

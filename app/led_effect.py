@@ -168,7 +168,6 @@ class BubbleEffect(LedEffect):
         self._base_color = np.array(base_color)
         self._bubble_color = np.array(bubble_color)
         self._bubble_pop_speed_ms = bubble_pop_speed_ms
-        self._bubble_length = bubble_length
         # Calculate number of frames it will take for the animation to complete
         self._pop_increments = int(
             self._bubble_pop_speed_ms / self.frame_speed_ms
@@ -181,7 +180,7 @@ class BubbleEffect(LedEffect):
         self._bubble_amplitude = self._bubble_color - self._base_color
 
         self._max_index = min(
-            num_pixels - 1, self._bubble_index + self._bubble_length
+            num_pixels - 1, self._bubble_index + bubble_length - 1
         )
         self._bubble_x_values = np.array(
             np.arange(self._bubble_index, self._max_index, 1)
@@ -284,8 +283,10 @@ class BubblingEffect(LedEffect):
                 self._bubble_lengths, 1, p=self._bubble_length_weights
             )[0]
             bubble_index = random.randint(0, self._num_pixels - 1)
-            while self._bubble_exists(
-                bubble_index, bubble_index + bubble_length - 1
+            bubble_max_index = bubble_index + bubble_length - 1
+            while (
+                self._bubble_exists(bubble_index, bubble_max_index)
+                or bubble_max_index >= self._num_pixels
             ):
                 bubble_index = random.randint(0, self._num_pixels - 1)
                 bubble_length = choice(

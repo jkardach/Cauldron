@@ -1,7 +1,8 @@
-from cauldron import Cauldron
 import board
+from cauldron import Cauldron
 import neopixel
 from neopixel_strip import NeoPixelStrip
+import threading
 import time
 
 PIXEL_ORDER = neopixel.RGB
@@ -17,14 +18,24 @@ device = neopixel.NeoPixel(
 strip = NeoPixelStrip(device)
 
 
-def test_explosions():
+def wait_for_explosion():
     cauldron = Cauldron(strip)
+    try:
+        while True:
+            user = input("Press Enter")
+            if user == "":
+                print("Causing explosion")
+                cauldron.cause_explosion()
+            elif user == "esc":
+                return
+    except KeyboardInterrupt:
+        cauldron = None
 
-    time.sleep(5)
-    for i in range(5):
-        print("Causing explosion")
-        cauldron.cause_explosion()
-        time.sleep(5)
+
+def test_explosions():
+    t = threading.Thread(target=wait_for_explosion)
+    t.start()
+    t.join()
 
 
 def test_default():
@@ -33,5 +44,5 @@ def test_default():
     time.sleep(60)
 
 
-# test_explosions()
-test_default()
+test_explosions()
+# test_default()

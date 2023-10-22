@@ -1,7 +1,6 @@
 import abc
 import led_effect
 import led_strip
-from multiprocessing import Event
 import players
 from pydub import AudioSegment
 from random import choice
@@ -11,10 +10,16 @@ import threading
 BUBBLE_LENGTHS = [7, 9, 11]
 BUBBLE_POP_SPEEDS = [3000, 4000, 5000]
 BUBBLE_PROB_WEIGHTS = [0.5, 0.25, 0.25]
-MAX_BUBBLES = 10
 BUBBLE_SPAWN_PROB = 0.05
-EXPLOSION_SOUND = "app/files/audio/poof.wav"
 BUBBLING_SOUND = "app/files/audio/bubbles.wav"
+CAULDRON_COLORS = [
+    ([32, 139, 25], [215, 232, 23]),
+    ([142, 75, 166], [237, 114, 178]),
+    ([255, 179, 0], [255, 0, 60]),
+    ([235, 57, 21], [76, 172, 194]),
+]
+EXPLOSION_SOUND = "app/files/audio/poof.wav"
+MAX_BUBBLES = 10
 
 
 class ICauldron(abc.ABC):
@@ -34,12 +39,7 @@ class Cauldron(ICauldron):
         self._strip = strip
 
         # Initialize color possibilities
-        self._colors = [
-            ([32, 139, 25], [215, 232, 23]),
-            ([142, 75, 166], [237, 114, 178]),
-            ([255, 179, 0], [255, 0, 60]),
-            ([235, 57, 21], [76, 172, 194]),
-        ]
+        self._colors = CAULDRON_COLORS
         self._current_color_index = 0
         self._current_colors = self._colors[self._current_color_index]
 
@@ -138,38 +138,3 @@ class Cauldron(ICauldron):
         self._current_explosion_effect.reset()
         self._set_random_colors()
         self._explosion_handle = self._explosion_av.play()
-
-
-class ICauldronEvents:
-    def __init__(self):
-        # Triggers when any event has been set
-        self.any_event: Event = Event()
-        self.explosion_event: Event = Event()
-
-    def reset_explosion_event(self):
-        self.any_event.clear()
-        self.explosion_event.clear()
-
-
-class CauldronEvents(ICauldron, ICauldronEvents):
-    def __init__(self):
-        ICauldronEvents.__init__(self)
-
-    def cause_explosion(self):
-        self.explosion_event.set()
-        self.any_event.set()
-
-
-class CauldronProcess:
-    def __init__(self, cauldron: ICauldron):
-        self._cauldron = cauldron
-        self._running = True
-
-    def wait_for_events(self, events: ICauldronEvents):
-        """Handles all cauldron events received."""
-        while self._running:
-            # Wait for any event to be set
-            events.any_event.wait(1)
-            if events.explosion_event.is_set():
-                self._cauldron.cause_explosion()
-                events.reset_explosion_event()

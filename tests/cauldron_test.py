@@ -1,38 +1,26 @@
-import cauldron
-import multiprocessing
+from cauldron import ICauldron, CauldronService
 import unittest
 
 
-class MockCauldron(cauldron.ICauldron):
+class MockCauldron(ICauldron):
     def __init__(self):
-        self.explosion_called_count = multiprocessing.Value("i", 0)
+        self.explosion_called_count = 0
 
     def cause_explosion(self):
-        with self.explosion_called_count.get_lock():
-            self.explosion_called_count += 1
+        self.explosion_called_count += 1
 
 
 class TestCauldron(unittest.TestCase):
-    def test_cauldron_comm(self):
-        mock_cauldron = MockCauldron()
-        proc = cauldron.CauldronProcess(mock_cauldron)
-        events = cauldron.CauldronEvents()
-        process = multiprocessing.Process(
-            name="CauldronProcess",
-            target=proc.wait_for_events,
-            args=(events,),
-        )
-        process.start()
+    def test_cauldron_service(self):
+        cauldron = MockCauldron()
+        service = CauldronService(cauldron)
 
-        self.assertEqual(mock_cauldron.explosion_called_count.get_obj(), 0)
-        events.cause_explosion()
-        self.assertEqual(mock_cauldron.explosion_called_count.get_obj(), 1)
-        events.cause_explosion()
-        self.assertEqual(mock_cauldron.explosion_called_count.get_obj(), 2)
-        events.cause_explosion()
-        self.assertEqual(mock_cauldron.explosion_called_count.get_obj(), 3)
+        self.assertEqual(cauldron.explosion_called_count, 0)
+        num_calls = 5
+        for _ in range(num_calls):
+            service.cause_explosion()
 
-        process.join()
+        self.assertEqual(cauldron.explosion_called_count, num_calls)
 
 
 if __name__ == "__main__":
