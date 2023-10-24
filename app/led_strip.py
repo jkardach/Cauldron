@@ -1,6 +1,8 @@
 import abc
 from enum import Enum
 import numpy as np
+import socket
+import time
 from typing import Callable
 
 
@@ -27,10 +29,6 @@ class LedStrip(abc.ABC):
     @abc.abstractmethod
     def fill(self, color: tuple):
         return None
-
-    @abc.abstractmethod
-    def fill_copy(self, pixels: np.array) -> int:
-        return 0
 
     @abc.abstractmethod
     def set_pixel_color(self, index: int, color: tuple):
@@ -70,9 +68,6 @@ class RgbArrayStrip(LedStrip):
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels[:] = color
 
-    def fill_copy(self, pixels: np.array) -> int:
-        self._pixels = pixels.copy()
-
     def set_pixel_color(self, index: int, color: list):
         assert len(color) == _RGB_COLOR_SIZE
         self._pixels[index] = color
@@ -94,6 +89,34 @@ class RgbArrayStrip(LedStrip):
 
     def num_pixels(self) -> int:
         return self._num_pixels
+
+
+class UdpStreamStrip(RgbArrayStrip):
+    def __init__(self, num_pixels: int, address: str, port: int):
+        RgbArrayStrip.__init__(self, num_pixels)
+        self._address = address
+        self._port = port
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._show_callback = None
+
+    def set_show_callback(self, show_callback: Callable[[np.array], None]):
+        self._show_callback = show_callback
+
+    def __setitem__(self, indices, value):
+        RgbArrayStrip.__setitem__(self, indices, value)
+        self.show()
+
+    def fill(self, color: list):
+        RgbArrayStrip.fill(self, color)
+        self.show()
+
+    def show(self):
+        now = time.time()
+        brightness = int(self.brightness * 255).to_bytes(1, "big")
+        data = brightness + self.get_pixels(PixelOrder.BGR).tobytes()
+        self._socket.sendto(data, (self._address, self._port))
+        if self._show_callback:
+            self._show_callback(self._pixels)
 
 
 class MockStrip(RgbArrayStrip):

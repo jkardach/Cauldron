@@ -262,6 +262,28 @@ class BubblingEffect(LedEffect):
     def _bubble_exists(self, min_index: int, max_index: int) -> bool:
         return not np.all(self._bubble_indices[min_index:max_index])
 
+    def _get_bubble_location(self):
+        bubble_length = choice(
+            self._bubble_lengths, 1, p=self._bubble_length_weights
+        )[0]
+        bubble_index = random.randint(0, self._num_pixels - 1)
+        bubble_max_index = bubble_index + bubble_length - 1
+        try_count = 0
+        while (
+            self._bubble_exists(bubble_index, bubble_max_index)
+            or bubble_max_index >= self._num_pixels
+        ) and try_count < 30:
+            try_count += 1
+            bubble_index = random.randint(0, self._num_pixels - 1)
+            bubble_length = choice(
+                self._bubble_lengths, 1, p=self._bubble_length_weights
+            )[0]
+            bubble_max_index = bubble_index + bubble_length - 1
+        if try_count >= 30:
+            self._max_bubbles_reached = True
+            return None
+        return (bubble_index, bubble_length)
+
     def apply_effect(self):
         """Applies a bubble to the LedStrip."""
         # Check if it is possible to create another bubble
@@ -279,36 +301,27 @@ class BubblingEffect(LedEffect):
         if spawn_bubble and not self._max_bubbles_reached:
             # Get random bubble lengths and indices until we get a new bubble
             # that does not exist
-            bubble_length = choice(
-                self._bubble_lengths, 1, p=self._bubble_length_weights
-            )[0]
-            bubble_index = random.randint(0, self._num_pixels - 1)
-            bubble_max_index = bubble_index + bubble_length - 1
-            while (
-                self._bubble_exists(bubble_index, bubble_max_index)
-                or bubble_max_index >= self._num_pixels
-            ):
-                bubble_index = random.randint(0, self._num_pixels - 1)
-                bubble_length = choice(
-                    self._bubble_lengths, 1, p=self._bubble_length_weights
+            result = self._get_bubble_location()
+            if result is not None:
+                bubble_index, bubble_length = result
+                # Create a new bubble
+                bubble_pop_speed_ms = choice(
+                    self._bubble_pop_speeds,
+                    1,
+                    p=self._bubble_pop_speed_weights,
                 )[0]
-                bubble_max_index = bubble_index + bubble_length - 1
-            # Create a new bubble
-            bubble_pop_speed_ms = choice(
-                self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
-            )[0]
-            bubble_effect = BubbleEffect(
-                self._strip,
-                bubble_index,
-                self._base_color,
-                self._bubble_color,
-                bubble_length,
-                bubble_pop_speed_ms,
-            )
-            bubble_range = bubble_effect.bubble_index_range()
-            self._bubble_indices[bubble_range[0] : bubble_range[1]] = 0
-            with self._lock:
-                self._current_bubbles[bubble_index] = bubble_effect
+                bubble_effect = BubbleEffect(
+                    self._strip,
+                    bubble_index,
+                    self._base_color,
+                    self._bubble_color,
+                    bubble_length,
+                    bubble_pop_speed_ms,
+                )
+                bubble_range = bubble_effect.bubble_index_range()
+                self._bubble_indices[bubble_range[0] : bubble_range[1]] = 0
+                with self._lock:
+                    self._current_bubbles[bubble_index] = bubble_effect
         # Apply all of the bubble effects to the LedStrip
         for bubbles in self._current_bubbles.values():
             bubbles.apply_effect()
