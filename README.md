@@ -39,6 +39,8 @@ python sample/led_effect.py
 
 Within the project root directory.
 ```
+sudo apt-get install libbluetooth-dev
+
 # Install all project dependencies
 python3 -m pip install -r requirements_rpi.txt
 
@@ -75,25 +77,3 @@ MockStrip uses a (NUM_PIXELS x 3) numpy array to represent an RGB LED strip. We 
 4. Create a multithreaded MockEffectPlayer that can be run from a non-main thread
 5. Add more colors to the Cauldron
 6. Optionally randomize the cauldron bubble colors, instead of having fixed combinations
-
-
-## Bugs
-
-1. Divide by zero:
-
-```
-Causing explosion
-  File "/usr/lib/python3.9/threading.py", line 954, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.9/threading.py", line 892, in run
-    self._target(*self._args, **self._kwargs)
-  File "/home/tkardach/dev/CauldronPy/app/players.py", line 153, in _loop
-    self._effect.apply_effect()
-  File "/home/tkardach/dev/CauldronPy/app/led_effect.py", line 298, in apply_effect
-    bubble_effect = BubbleEffect(
-  File "/home/tkardach/dev/CauldronPy/app/led_effect.py", line 191, in __init__
-    [self._get_x_values(len(self._bubble_x_values))]
-  File "/home/tkardach/dev/CauldronPy/app/led_effect.py", line 195, in _get_x_values
-    x_inc = TWO_PI / (length - 1)
-ZeroDivisionError: float division by zero
-```
