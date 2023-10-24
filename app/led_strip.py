@@ -1,9 +1,15 @@
 import abc
+from enum import Enum
 import numpy as np
 from typing import Callable
 
 
 _RGB_COLOR_SIZE = 3
+
+
+class PixelOrder(Enum):
+    RGB = (0,)
+    BGR = 1
 
 
 class LedStrip(abc.ABC):
@@ -49,13 +55,10 @@ class LedStrip(abc.ABC):
         return None
 
 
-class MockStrip(LedStrip):
-    def __init__(
-        self, num_pixels: int, show_callback: Callable[[np.array], None] = None
-    ):
+class RGBArrayStrip(LedStrip):
+    def __init__(self, num_pixels: int):
         self._num_pixels = num_pixels
-        self._pixels = np.zeros((num_pixels, 3)).astype("u4")
-        self._show_callback = show_callback
+        self._pixels = np.zeros((num_pixels, 3)).astype(np.uint8)
         self._brightness = 1.0
 
     def __setitem__(self, indices, value):
@@ -89,9 +92,27 @@ class MockStrip(LedStrip):
     def brightness(self, brightness: float):
         self._brightness = brightness
 
+    def get_pixels(self, pixel_order: PixelOrder):
+        if pixel_order == PixelOrder.RGB:
+            return self._pixels
+        elif pixel_order == PixelOrder.BGR:
+            return self._pixels[:, [2, 1, 0]]
+        raise ValueError("Invalid PixelOrder")
+
     def num_pixels(self) -> int:
         return self._num_pixels
 
     def show(self):
         if self._show_callback:
             self._show_callback(self._pixels)
+
+
+class MockStrip(RGBArrayStrip):
+    def __init__(
+        self, num_pixels: int, show_callback: Callable[[np.array], None] = None
+    ):
+        RGBArrayStrip.__init__(self, num_pixels)
+        self._show_callback = show_callback
+
+    def get_pixels(self):
+        return self._pixels
