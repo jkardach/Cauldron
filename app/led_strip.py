@@ -50,12 +50,11 @@ class LedStrip(abc.ABC):
     def num_pixels(self) -> int:
         return 0
 
-    @abc.abstractmethod
     def show(self):
         return None
 
 
-class RGBArrayStrip(LedStrip):
+class RgbArrayStrip(LedStrip):
     def __init__(self, num_pixels: int):
         self._num_pixels = num_pixels
         self._pixels = np.zeros((num_pixels, 3)).astype(np.uint8)
@@ -67,17 +66,11 @@ class RGBArrayStrip(LedStrip):
     def __getitem__(self, indices):
         return self._pixels[indices]
 
-    def set_show_callback(self, show_callback: Callable[[np.array], None]):
-        self._show_callback = show_callback
-
     def fill(self, color: list):
         assert len(color) == _RGB_COLOR_SIZE
-        self._pixels = np.array([color] * self._num_pixels)
+        self._pixels[:] = color
 
     def fill_copy(self, pixels: np.array) -> int:
-        assert (
-            pixels.shape == self._pixels.shape
-        ), f"{pixels.shape} != {self._pixels.shape}"
         self._pixels = pixels.copy()
 
     def set_pixel_color(self, index: int, color: list):
@@ -102,17 +95,20 @@ class RGBArrayStrip(LedStrip):
     def num_pixels(self) -> int:
         return self._num_pixels
 
-    def show(self):
-        if self._show_callback:
-            self._show_callback(self._pixels)
 
-
-class MockStrip(RGBArrayStrip):
+class MockStrip(RgbArrayStrip):
     def __init__(
         self, num_pixels: int, show_callback: Callable[[np.array], None] = None
     ):
-        RGBArrayStrip.__init__(self, num_pixels)
+        RgbArrayStrip.__init__(self, num_pixels)
+        self._show_callback = show_callback
+
+    def set_show_callback(self, show_callback: Callable[[np.array], None]):
         self._show_callback = show_callback
 
     def get_pixels(self):
         return self._pixels
+
+    def show(self):
+        if self._show_callback:
+            self._show_callback(self._pixels)

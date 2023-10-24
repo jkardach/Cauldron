@@ -109,7 +109,7 @@ class SineWaveEffect(LedEffect):
         """Applies the sine wave effect onto the LedStrip."""
         with self._lock:
             pixels = self._update_pixel_values_locked(self._x_values)
-            self._strip.fill_copy(pixels)
+            self._strip[:] = pixels
             self._update_oscillation_locked()
 
         self._strip.show()
@@ -292,6 +292,7 @@ class BubblingEffect(LedEffect):
                 bubble_length = choice(
                     self._bubble_lengths, 1, p=self._bubble_length_weights
                 )[0]
+                bubble_max_index = bubble_index + bubble_length - 1
             # Create a new bubble
             bubble_pop_speed_ms = choice(
                 self._bubble_pop_speeds, 1, p=self._bubble_pop_speed_weights
