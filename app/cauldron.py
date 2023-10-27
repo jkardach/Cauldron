@@ -47,6 +47,9 @@ class Cauldron(ICauldron):
         self._current_bubbling_effect = None
         self._bubbling_handle: players.Handle = None
         self._init_bubbling_effects()
+        segment = AudioSegment.from_file(BUBBLING_SOUND)
+        segment.frame_rate = int(segment.frame_rate / 4)
+        self._bubbling_audio_player = players.AudioPlayer(segment)
 
         # Initialize explosion effects
         self._current_explosion_effect = None
@@ -54,6 +57,7 @@ class Cauldron(ICauldron):
         self._init_explosion_effects()
 
         # Start the common effect
+        self._bubbling_audio_handle = self._bubbling_audio_player.loop()
         self._start_common_effect()
 
     def __del__(self):
@@ -61,25 +65,28 @@ class Cauldron(ICauldron):
             self._explosion_handle.stop_wait()
         if self._bubbling_handle:
             self._bubbling_handle.stop_wait()
+        if self._bubbling_audio_handle:
+            self._bubbling_audio_handle.stop_wait()
 
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
         segment = segment.set_sample_width(2)
+        explosion_audio = players.AudioPlayer(segment)
 
         self._current_explosion_effect = led_effect.AudioToBrightnessEffect(
             self._strip, segment
         )
+        self._current_explosion_effect.frame_speed_ms = 50
         explosion_effect_player = players.LedEffectPlayer(
             self._current_explosion_effect
         )
-        explosion_audio = players.AudioPlayer(segment)
         self._explosion_av = players.AudioVisualPlayer(
             explosion_effect_player, explosion_audio
         )
         self._explosion_handle = None
 
     def _init_bubbling_effects(self):
-        self._bubbling_effects: list[players.AudioVisualPlayer] = []
+        self._bubbling_effects: list[players.LedEffectPlayer] = []
         for colors in self._colors:
             bubbling_effect = led_effect.BubblingEffect(
                 self._strip,
@@ -93,14 +100,7 @@ class Cauldron(ICauldron):
                 BUBBLE_SPAWN_PROB,
             )
             bubbling_effect_player = players.LedEffectPlayer(bubbling_effect)
-            segment = AudioSegment.from_file(BUBBLING_SOUND)
-            segment.frame_rate = int(segment.frame_rate / 4)
-            bubbling_audio_player = players.AudioPlayer(segment)
-
-            bubbling_av = players.AudioVisualPlayer(
-                bubbling_effect_player, bubbling_audio_player
-            )
-            self._bubbling_effects.append(bubbling_av)
+            self._bubbling_effects.append(bubbling_effect_player)
         self._current_bubbling_effect = self._bubbling_effects[
             self._current_color_index
         ]
@@ -127,7 +127,7 @@ class Cauldron(ICauldron):
         if self._bubbling_handle is not None:
             self._bubbling_handle.stop_wait()
         with self._lock:
-            bubbling_effect = self._bubbling_effects[self._current_color_index]
+            bubbling_effect = self._current_bubbling_effect
             self._strip.fill(self._current_colors[0])
             self._bubbling_handle = bubbling_effect.loop()
 
