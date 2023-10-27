@@ -1,21 +1,13 @@
-import board
 from cauldron import Cauldron
-import neopixel
-from neopixel_strip import NeoPixelStrip
+from led_strip import UdpStreamStrip
 import threading
 import time
 
-PIXEL_ORDER = neopixel.RGB
-PIXEL_PIN = board.D12
 NUM_PIXELS = 50
-device = neopixel.NeoPixel(
-    PIXEL_PIN,
-    NUM_PIXELS,
-    auto_write=True,
-    pixel_order=PIXEL_ORDER,
-    brightness=0.2,
-)
-strip = NeoPixelStrip(device)
+HOST = "192.168.0.4"
+PORT = 5456
+strip = UdpStreamStrip(NUM_PIXELS, HOST, PORT)
+strip.brightness = 0.2
 
 
 def wait_for_explosion():
