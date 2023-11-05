@@ -59,7 +59,10 @@ def test_bubbling_effect():
     bubble_pop_speeds = [3000, 4000, 5000]
     weights = [0.5, 0.25, 0.25]
 
-    mock_strip = led_strip.MockStrip(NUM_PIXELS)
+    NUM_PIXELS = 50
+    HOST = "192.168.0.4"
+    PORT = 5456
+    mock_strip = led_strip.UdpStreamStrip(NUM_PIXELS, HOST, PORT)
     bubble_effect = led_effect.BubblingEffect(
         mock_strip,
         color0,

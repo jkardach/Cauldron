@@ -12,9 +12,13 @@ TWO_PI = np.pi * 2
 
 
 class LedEffect(abc.ABC):
-    def __init__(self, strip: LedStrip):
-        self.frame_speed_ms = 100
+    def __init__(self, strip: LedStrip, frame_speed_ms: int = 100):
+        self._frame_speed_ms = frame_speed_ms
         self._strip = strip
+
+    @property
+    def frame_speed_ms(self) -> int:
+        return self._frame_speed_ms
 
     @abc.abstractmethod
     def apply_effect(self):
@@ -47,9 +51,10 @@ class SineWaveEffect(LedEffect):
         b: float = 1,
         oscillate: bool = False,
         oscillation_speed_ms: int = 250,
+        frame_speed_ms: int = 100,
     ):
         assert len(color0) == len(color1)
-        LedEffect.__init__(self, strip)
+        LedEffect.__init__(self, strip, frame_speed_ms)
         self._lock = threading.Lock()
         # Convert colors to numpy arrays
         self._color0 = np.array(color0)
@@ -145,7 +150,7 @@ class SineWaveEffect(LedEffect):
     def oscillation_speed_ms(self, speed_ms: int):
         with self._lock:
             self._oscillation_speed_ms = speed_ms
-            self._oscillation_inc = speed_ms / self.frame_speed_ms
+            self._oscillation_inc = speed_ms / self._frame_speed_ms
 
 
 class BubbleEffect(LedEffect):
@@ -157,10 +162,11 @@ class BubbleEffect(LedEffect):
         bubble_color: list,
         bubble_length: int = 5,
         bubble_pop_speed_ms: int = 3000,
+        frame_speed_ms: int = 100,
     ):
         assert bubble_index >= 0
         self._lock = threading.Lock()
-        LedEffect.__init__(self, strip)
+        LedEffect.__init__(self, strip, frame_speed_ms)
         num_pixels = self._strip.num_pixels()
         # Calculate x values of the bubble
         assert bubble_index < num_pixels
@@ -170,7 +176,7 @@ class BubbleEffect(LedEffect):
         self._bubble_pop_speed_ms = bubble_pop_speed_ms
         # Calculate number of frames it will take for the animation to complete
         self._pop_increments = int(
-            self._bubble_pop_speed_ms / self.frame_speed_ms
+            self._bubble_pop_speed_ms / self._frame_speed_ms
         )
         self._current_increment = 0
         # Calculate bubble y value amplitude increments
@@ -210,7 +216,6 @@ class BubbleEffect(LedEffect):
         colors = np.clip(colors, 0, 255)
         self._strip[self._bubble_x_range[0] : self._bubble_x_range[1]] = colors
         self._current_increment += 1
-        self._strip.show()
 
     def reset(self):
         with self._lock:
@@ -229,8 +234,9 @@ class BubblingEffect(LedEffect):
         bubble_pop_speed_weights: list,
         max_bubbles: int,
         bubble_spawn_prob: float,
+        frame_speed_ms: int = 100,
     ):
-        LedEffect.__init__(self, strip)
+        LedEffect.__init__(self, strip, frame_speed_ms)
         self._lock = threading.Lock()
         assert len(bubble_lengths) == len(bubble_length_weights)
         assert len(bubble_pop_speeds_ms) == len(bubble_pop_speed_weights)
@@ -317,6 +323,7 @@ class BubblingEffect(LedEffect):
                     self._bubble_color,
                     bubble_length,
                     bubble_pop_speed_ms,
+                    self._frame_speed_ms,
                 )
                 bubble_range = bubble_effect.bubble_index_range()
                 self._bubble_indices[bubble_range[0] : bubble_range[1]] = 0
@@ -335,8 +342,10 @@ class BubblingEffect(LedEffect):
 class AudioToBrightnessEffect(LedEffect):
     """Changes the brightness of the LedStrip based on AudioSegment volume."""
 
-    def __init__(self, strip: LedStrip, segment: AudioSegment):
-        LedEffect.__init__(self, strip)
+    def __init__(
+        self, strip: LedStrip, segment: AudioSegment, frame_speed_ms: int = 100
+    ):
+        LedEffect.__init__(self, strip, frame_speed_ms)
         self._lock = threading.Lock()
         data = np.array(segment.get_array_of_samples())
         data = np.abs(data.astype(np.int32))
@@ -346,7 +355,7 @@ class AudioToBrightnessEffect(LedEffect):
         self._duration_s = segment.duration_seconds
         self._current_iteration = 0
         self._total_increments = (
-            segment.duration_seconds * 1000 / self.frame_speed_ms
+            segment.duration_seconds * 1000 / self._frame_speed_ms
         )
         self._iteration_increment = (
             len(self._normalized_data) / self._total_increments

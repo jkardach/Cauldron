@@ -18,10 +18,11 @@ def wait_for_explosion():
             if user == "":
                 print("Causing explosion")
                 cauldron.cause_explosion()
-            elif user == "esc":
+            elif user == "c":
+                del cauldron
                 return
     except KeyboardInterrupt:
-        cauldron = None
+        del cauldron
 
 
 def test_explosions():

@@ -57,26 +57,43 @@ class Cauldron(ICauldron):
         self._init_explosion_effects()
 
         # Start the common effect
+        self._bubbling_audio_handle = None
+        self.start()
+
+    def __del__(self):
+        self.stop()
+
+    def start(self):
+        if (
+            self._bubbling_audio_handle is not None
+            or self._bubbling_handle is not None
+        ):
+            return
         self._bubbling_audio_handle = self._bubbling_audio_player.loop()
         self._start_common_effect()
 
-    def __del__(self):
+    def stop(self):
+        self._strip.fill((0, 0, 0))
+        self._strip.show()
         if self._explosion_handle:
             self._explosion_handle.stop_wait()
+            self._explosion_handle = None
         if self._bubbling_handle:
             self._bubbling_handle.stop_wait()
+            self._bubbling_handle = None
         if self._bubbling_audio_handle:
             self._bubbling_audio_handle.stop_wait()
+            self._bubbling_audio_handle = None
 
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
         segment = segment.set_sample_width(2)
+        segment += 30
         explosion_audio = players.AudioPlayer(segment)
 
         self._current_explosion_effect = led_effect.AudioToBrightnessEffect(
-            self._strip, segment
+            self._strip, segment, frame_speed_ms=33
         )
-        self._current_explosion_effect.frame_speed_ms = 50
         explosion_effect_player = players.LedEffectPlayer(
             self._current_explosion_effect
         )
@@ -98,6 +115,7 @@ class Cauldron(ICauldron):
                 BUBBLE_PROB_WEIGHTS,
                 MAX_BUBBLES,
                 BUBBLE_SPAWN_PROB,
+                frame_speed_ms=33,
             )
             bubbling_effect_player = players.LedEffectPlayer(bubbling_effect)
             self._bubbling_effects.append(bubbling_effect_player)
@@ -127,9 +145,8 @@ class Cauldron(ICauldron):
         if self._bubbling_handle is not None:
             self._bubbling_handle.stop_wait()
         with self._lock:
-            bubbling_effect = self._current_bubbling_effect
             self._strip.fill(self._current_colors[0])
-            self._bubbling_handle = bubbling_effect.loop()
+            self._bubbling_handle = self._current_bubbling_effect.loop()
 
     def cause_explosion(self):
         """Causing an explosion will change the color and strobe the lights."""

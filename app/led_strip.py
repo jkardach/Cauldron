@@ -80,7 +80,7 @@ class RgbArrayStrip(LedStrip):
     def brightness(self, brightness: float):
         self._brightness = brightness
 
-    def get_pixels(self, pixel_order: PixelOrder):
+    def get_pixels(self, pixel_order: PixelOrder = PixelOrder.RGB):
         if pixel_order == PixelOrder.RGB:
             return self._pixels
         elif pixel_order == PixelOrder.BGR:
@@ -92,28 +92,30 @@ class RgbArrayStrip(LedStrip):
 
 
 class UdpStreamStrip(RgbArrayStrip):
-    def __init__(self, num_pixels: int, address: str, port: int):
+    def __init__(
+        self, num_pixels: int, address: str, port: int, brightness: float = 1
+    ):
         RgbArrayStrip.__init__(self, num_pixels)
         self._address = address
         self._port = port
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._show_callback = None
+        self._brightness = brightness
 
     def set_show_callback(self, show_callback: Callable[[np.array], None]):
         self._show_callback = show_callback
 
     def __setitem__(self, indices, value):
         RgbArrayStrip.__setitem__(self, indices, value)
-        self.show()
 
     def fill(self, color: list):
         RgbArrayStrip.fill(self, color)
-        self.show()
 
     def show(self):
-        now = time.time()
-        brightness = int(self.brightness * 255).to_bytes(1, "big")
-        data = brightness + self.get_pixels(PixelOrder.BGR).tobytes()
+        pixels = self.get_pixels(PixelOrder.RGB)
+        brightness = int(self._brightness * 255)
+        pixels = ((np.uint64(pixels) * brightness) >> 8).astype(np.uint8)
+        data = pixels.tobytes()
         self._socket.sendto(data, (self._address, self._port))
         if self._show_callback:
             self._show_callback(self._pixels)

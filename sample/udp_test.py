@@ -34,17 +34,20 @@ def test_bubbling_effect():
     return bubble_effect
 
 
+import numpy as np
+
 HOST = "192.168.0.4"
 PORT = 5456
 strip = UdpStreamStrip(50, HOST, PORT)
-strip.fill([142, 75, 166])
+strip.fill([0, 0, 0])
+strip.show()
 
-bubble_effect = test_bubbling_effect()
+# bubble_effect = test_bubbling_effect()
 
-player = MockEffectPlayer(strip, bubble_effect)
-handle = player.play()
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    handle.stop()
+# player = MockEffectPlayer(strip, bubble_effect)
+# handle = player.play()
+# try:
+#     while True:
+#         time.sleep(1)
+# except KeyboardInterrupt:
+#     handle.stop()
