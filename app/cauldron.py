@@ -26,6 +26,18 @@ class ICauldron(abc.ABC):
     """Interface to control the Cauldron."""
 
     @abc.abstractmethod
+    def start(self):
+        pass
+
+    @abc.abstractmethod
+    def stop(self):
+        pass
+
+    @abc.abstractmethod
+    def is_playing(self):
+        pass
+
+    @abc.abstractmethod
     def cause_explosion(self):
         """Causes the Cauldron to explode, changing the color."""
         return None
@@ -84,6 +96,12 @@ class Cauldron(ICauldron):
         if self._bubbling_audio_handle:
             self._bubbling_audio_handle.stop_wait()
             self._bubbling_audio_handle = None
+
+    def is_playing(self):
+        return (
+            self._bubbling_audio_handle.is_playing()
+            and self._bubbling_handle.is_playing()
+        )
 
     def _init_explosion_effects(self):
         segment = AudioSegment.from_file(EXPLOSION_SOUND)
